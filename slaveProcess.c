@@ -26,17 +26,16 @@ int main(int args, char * argv[]){
 }
 
 void sonFunction(int * pipeFileDescriptor){
-	dup2(pipeFileDescriptor[1], 1); //redirijimos lo que se escribe en stdout a la tuberia de escritura del hijo, 
-									//que iria a la de lectura del padre
-    close(pipeFileDescriptor[0]);
+	dup2(pipeFileDescriptor[1], 1); //redirijimos lo que se escribe en stdout a la tuberia de escritura del hijo
+    	close(pipeFileDescriptor[0]);
 	execlp("md5sum", "md5sum" ,"slaveProcess.c", NULL);
 	close(pipeFileDescriptor[1]);
 }
 
 void fatherFunction(int * pipeFileDescriptor, char * md5sum){
 	read(pipeFileDescriptor[0], md5sum, MD5_SIZE);
-    wait(NULL); //Esperamos a que todos los hijos terminen su ejecucion, en este caso, solo esperamos al unico hijo del fork()
-    md5sum[MD5_SIZE - 1] = '\0';
-    close(pipeFileDescriptor[0]);
-    close(pipeFileDescriptor[1]);
+    	wait(NULL); //Esperamos a que todos los hijos terminen su ejecucion, en este caso, solo esperamos al unico hijo del fork()
+    	md5sum[MD5_SIZE - 1] = '\0';
+    	close(pipeFileDescriptor[0]);
+    	close(pipeFileDescriptor[1]);
 }
