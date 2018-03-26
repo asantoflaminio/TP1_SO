@@ -1,0 +1,21 @@
+APPLICATION=application
+SOURCES_APPLICATION=application.c
+
+QUEUE=queue.o
+SOURCES_QUEUE=queue.c
+
+GCC=gcc
+
+all: $(APPLICATION)
+
+
+$(APPLICATION): $(SOURCES_APPLICATION) $(QUEUE) $(SHARED_MEMORY)
+	$(GCC) $(SOURCES_APPLICATION) $(QUEUE) $(SHARED_MEMORY) -o $(APPLICATION)
+
+$(QUEUE): $(SOURCES_QUEUE)
+	$(GCC) -c $(SOURCES_QUEUE)
+
+clean:
+	rm -rf *.o $(APPLICATION)
+
+.PHONY: all clean print debug
