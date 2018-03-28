@@ -2,6 +2,8 @@
 #include <dirent.h>
 #include <stdlib.h>
 #include <string.h>
+#include <unistd.h>
+#include <fcntl.h>
 #include "include/application.h"
 #include "include/queue.h"
 #include "include/order.h"
@@ -32,19 +34,65 @@ void start(const char *dirname){
 	//Fetch files
 	printf("Fetching files...\n");
 	files = loadFiles(dirname, orderQueue, files);
-	printf("Fetchet %d files!\n", files);
+	printf("... %d files were fetched!\n", files);
 
-	/* Probando que se guarde todo ok en la queue - Despues borrar esto */
-	node_o * current = orderQueue->first;
+	if(files == 0){
+		printf("%s\n", "No files to process");
+		exit(EXIT_SUCCESS);
+	} else {
+		/* Probando que se guarde todo ok en la queue - Despues borrar esto */
+		node_o * current = orderQueue->first;
+		
+		while(current != NULL){
+			printf("processed?: %d - ", current->order.processed);
+			printf("filename: %s\n", current->order.filename);
+			current = current->next;
+		}
+		
+		printf("Queue size: %d\n", orderQueue->size);
+	}
+		
+	/* Comunicación unidireccional: Comunico a mi aplicacion via un pipe con el esclavo */
+	int pipefd[2];
+	pid_t pid;
+
+  	if( pipe(pipefd) == -1 ) {
+        printf("Error while opening the pipe!\n");
+    }
+
+	//Start slave
+	pid = fork();
+	printf("pid: %d\n", pid);
 	
-	while(current != NULL){
-		printf("processed: %d - ", current->order.processed);
-		printf("filename: %s \n", current->order.filename);
-		current = current->next;
+	switch(pid){
+	case -1:
+		perror("Fork error\n");
+		wait(NULL);
+		exit(EXIT_FAILURE);
+	case 0:
+		//If i'm the child, execute ./slave
+		printf("Before slave\n");
+		dup2(pipefd[0], STDIN_FILENO);
+ 		close(pipefd[1]);
+		execlp(SLAVE_EXEC, SLAVE_EXEC, NULL);
+		perror("[ERROR!] Couldn't execute worker in forked child!");
+		wait(NULL);
+		exit(EXIT_SUCCESS);
+	default:
+		//If i'm the application process
+		close(pipefd[0]);
+		write(pipefd[1], orderQueue->first->order.filename, strlen(orderQueue->first->order.filename)+1);
 	}
 	
-	printf("%d", orderQueue->size);
+	
+	int pid2;
+	int status;
+	while ((pid2=waitpid(-1,&status,0))!=-1) {
+        printf("Process %d terminated\n",pid2);
+    }
 }
+
+
 
 int loadFiles(const char *dirname, queue_o queue, int files){
 	DIR *dir;
