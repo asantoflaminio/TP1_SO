@@ -62,26 +62,26 @@ void start(const char *dirname){
 
 	//Start slave
 	pid = fork();
-	printf("pid: %d\n", pid);
 	
 	switch(pid){
 	case -1:
 		perror("Fork error\n");
 		wait(NULL);
 		exit(EXIT_FAILURE);
+		break;
 	case 0:
 		//If i'm the child, execute ./slave
-		printf("Before slave\n");
 		dup2(pipefd[0], STDIN_FILENO);
  		close(pipefd[1]);
 		execlp(SLAVE_EXEC, SLAVE_EXEC, NULL);
 		perror("[ERROR!] Couldn't execute worker in forked child!");
 		wait(NULL);
-		exit(EXIT_SUCCESS);
+		break;
 	default:
 		//If i'm the application process
 		close(pipefd[0]);
 		write(pipefd[1], orderQueue->first->order.filename, strlen(orderQueue->first->order.filename)+1);
+		break;
 	}
 	
 	
