@@ -1,6 +1,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include "include/queue.h"
+#include "include/order.h"
+#include "include/types.h"
 
 queue_o newQueue(){ 
 	queue_o q = (queue_o) malloc(sizeof(queue_o));
@@ -30,10 +32,8 @@ sacando aquellos files que ya hayan sido procesados */
 node_o * deQueue(queue_o q){
     if (q->first == NULL)
         return NULL;
-
     node_o * temp = q->first;
     q->first = q->first->next;
-
     if (q->first == NULL)
         q->last = NULL;
 

@@ -5,27 +5,54 @@
 #include <sys/wait.h>
 #include "include/slave.h"
 #include "include/order.h"
+#include "include/queue.h"
 
 int 
 main(int args, char * argv[]){
 	char msg[MAX_FILENAME];
   	char * curr = msg;
-		
-	while((*curr=getchar()) && *curr!='\0')
-		curr++; 
+  	char * file;
+  	queue_o orderQueue = newQueue();
+  	int sizeQueue;
+  	int i;
+
+  	//Los pasajes relativos estan separados por un "|" por lo que recoletamos la data
+  	//y la vamos fraccionando, para colocarla en la cola y procesarla
+	while((*curr=getchar()) && *curr!='\0'){
+		if(*curr == '|'){
+			*curr = '\0';
+			file = malloc(strlen(msg) + 1);
+			strcpy(file, msg);
+			order_o order;
+			order.filename = file;
+			order.processed = false;
+			//printf("Encolando: %s\n" , msg);
+			enQueue(orderQueue, order);
+			memset(msg, 0, sizeof(msg));
+			curr = msg;
+		}
+		else{
+			curr++;
+		}
+	}
+
+	sizeQueue = orderQueue->size;
+	for(i = 0; i < sizeQueue; i++){
+		node_o * temp = deQueue(orderQueue);
+		processOrder(temp->order.filename);
+	}
 	
-	printf("I'm the slave and I received %s file to process\n", msg);
-	processOrder(msg);
 	return 0;
 }
 
 
+
+
 void processOrder(char * filename){
-  	char md5sum[MD5_SIZE];
+  	char md5sum[MD5_SIZE] = "";
 	int pipefd[2];
   	pipe(pipefd);
   	int pid;
-
   	pid = fork();
 	switch(pid){
 		case -1: 
@@ -60,5 +87,4 @@ void fatherFunction(int * pipefd, char * md5sum){
     md5sum[MD5_SIZE - 1] = '\0';
     close(pipefd[0]);
     close(pipefd[1]);
-   
 }
