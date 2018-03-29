@@ -13,8 +13,12 @@ int main(void){
 	key_t key;
 	int id;
 	int idSem;
-	char* shm;
+	char* shm; //esta es mi memoria compartida. Va a ser un string de chars. 
 	char *s; 
+	int done = 0;
+	int cant=1;
+	int i=0;
+	int status=1;
 
 	key = ftok ("/home", 123); // uso un directorio que este en toda PC
 	if(key == -1){
@@ -41,7 +45,7 @@ int main(void){
 
 	//esto va a ser despues para el semaforo
 	idSem = semget (key, 1, 0777 | IPC_CREAT);
-	if (id_sem == -1)
+	if (idSem == -1)
 	{
 		printf("Error during semaphore creation\n");
 		wait(NULL);
@@ -51,7 +55,48 @@ int main(void){
 
 
 	//aca vendria la impresion de todos los hashes y el uso de semaforos
-	//for(s = shm; )
+
+	while(!done){
+		modifySemaphore(-1,idSem);
+		if(shm[i]!= EOF){
+			while(shm[i]!='!'){
+				printf("%c", i); //Suponiendo que un signo de exclamacion es con lo q separo los hashes o con lo que termino el mensaje de cada archivo
+			}
+			printf('\n');
+		}else{
+			done = 1;
+		}
+		modifySemaphore(1,idSem);
+	}
+	/* VERSION GIULO
+	while(!done) {
+		modifySemaphore(-1,idSem);
+		if(shm[0]!= EOF || shm[0] > x){
+			if(shm[0]>x){
+				while(x<shm[0]){
+					if(status==1){
+						printf("\x1B[32mFinished[%d]\x1B[0m",quantity++);
+						status=0;
+					}
+					printf("%c",shm[x]);
+					if(shm[x]=='\n')
+						status=1;
+					x++;
+				}
+			}
+			if(shm[0]>2000){
+				shm[0]=2;
+				x=2;
+			}
+		}else{
+			done=1;
+		}
+		modifySemaphore(1,idSem);
+	}*/
+
+	modifySemaphore(-1,idSem);
+	memory[1]=-1;
+	modifySemaphore(1,idSem);
 
 
 	//cuando terminamos liberamos todo. Chequear igual si es necesario hacerlo. 
@@ -61,4 +106,13 @@ int main(void){
 	printf("View has concluded");
 	return 0;
 
+}
+
+//Tal vez convendria moverlo a otro lado
+void modifySemaphore(int x,int idSem){
+	struct sembuf operation;
+	operation.sem_num = 0;
+	operation.sem_op = x;
+	operation.sem_flg = 0;
+	semop(idSem, &operation, 1);
 }

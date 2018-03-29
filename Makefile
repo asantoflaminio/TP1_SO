@@ -7,6 +7,9 @@ SOURCES_SLAVE=slave.c
 QUEUE=queue.o
 SOURCES_QUEUE=queue.c
 
+VIEW=view
+SOURCES_VIEW=view.c
+
 GCC=gcc
 
 all: $(APPLICATION) $(SLAVE)
@@ -20,7 +23,10 @@ $(APPLICATION): $(SOURCES_APPLICATION) $(QUEUE)
 $(QUEUE): $(SOURCES_QUEUE)
 	$(GCC) -c $(SOURCES_QUEUE)
 
+$(VIEW): $(SOURCES_VIEW)
+	$(GCC) -c $(SOURCES_VIEW)
+
 clean:
-	rm -rf *.o $(APPLICATION) $(SLAVE)
+	rm -rf *.o $(APPLICATION) $(SLAVE) $(VIEW)
 
 .PHONY: all clean print debug
