@@ -8,6 +8,12 @@
 /* Filename lenght limit */
 #define MAX_FILENAME 256
 
+typedef struct {
+	int pipeFatherToChild[2];
+	int pipeChildToFather[2];
+	boolean isWorking;
+} slaves_o;
+
 /* */
 void sonFunction(int * pipefd, char * filename);
 
@@ -15,6 +21,6 @@ void sonFunction(int * pipefd, char * filename);
 void fatherFunction(int * pipefd, char * md5sum);
 
 /* */
-void processOrder(char * filename);
+void processOrder(char * filename, char * resultHashes);
 
 #endif
