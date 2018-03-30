@@ -5,13 +5,13 @@
 #include <unistd.h>
 #include <fcntl.h>
 #include <sys/wait.h>
+#include <errno.h>
 #include "include/application.h"
 #include "include/queue.h"
 #include "include/order.h"
 #include "include/types.h"
+#include "include/slave.h"
 
-#define SEPARATOR "/"
-#define ORDERS_NUM 4
 
 int 
 main(int argc, char* argv[]){
@@ -27,7 +27,9 @@ main(int argc, char* argv[]){
 
 void start(const char *dirname){
 	int files = 0;
+	int i;
 	queue_o orderQueue;
+	slaves_o * slaves;
 
 	//Create queue
 	printf("Creating order queue...\n");
@@ -37,6 +39,7 @@ void start(const char *dirname){
 	printf("Fetching files...\n");
 	files = loadFiles(dirname, orderQueue, files);
 	printf("... %d files were fetched!\n", files);
+	
 	if(files == 0){
 		printf("%s\n", "No files to process");
 		exit(EXIT_SUCCESS);
@@ -49,88 +52,67 @@ void start(const char *dirname){
 			printf("filename: %s\n", current->order.filename);
 			current = current->next;
 		}
-		
-		//printf("Queue size: %d\n", orderQueue->size);
+		printf("Queue size: %d\n", orderQueue->size);
 	}
-		
-	/* Comunicación unidireccional: Comunico a mi aplicacion via un pipe con el esclavo */
-	int pipeFatherToChild[2];
-	int pipeChildToFather[2];
-	pid_t pid;
-	int i;
-	int sizeQueue = orderQueue->size;
 	
-
-  	if( pipe(pipeFatherToChild) == -1 ) {
-        printf("Error while opening the pipe!\n");
-    }
-
-    if( pipe(pipeChildToFather) == -1 ) {
-        printf("Error while opening the second the pipe!\n");
-    }
-
-	//Start slave
-	pid = fork();
 	
-	switch(pid){
-	case -1:
-		perror("Fork error\n");
-		wait(NULL);
-		exit(EXIT_FAILURE);
-		break;
-	case 0:
-		//If i'm the child, execute ./slave
-		dup2(pipeFatherToChild[0], STDIN_FILENO);
-		dup2(pipeChildToFather[1], STDOUT_FILENO);
- 		close(pipeFatherToChild[1]);
- 		close(pipeChildToFather[0]);
-		execlp(SLAVE_EXEC, SLAVE_EXEC, NULL);
-		perror("[ERROR!] Couldn't execute worker in forked child!");
-		wait(NULL);
-		break;
-	default:
-		//If i'm the application process
-		dup2(pipeChildToFather[0], STDIN_FILENO);
-		close(pipeFatherToChild[0]);
-		close(pipeChildToFather[1]);
-		for(i = 0; i < ORDERS_NUM && i < sizeQueue; i++){
-			write(pipeFatherToChild[1], orderQueue->first->order.filename, strlen(orderQueue->first->order.filename));
-			write(pipeFatherToChild[1], "|", 1);
-			node_o * temp = deQueue(orderQueue);
-			printf("Enviado: %s\n", temp->order.filename);
-		}
-		write(pipeFatherToChild[1], "", 1);
-		break;
-	}
+	//Create slaves
+	slaves = createSlaves();
+	printf("Despues de crear los slaves\n");
+	//Assign them what to do
+	int assignedOrder = 0;
+	int finishOrder = 0;
+	int queueSize = orderQueue->size;
+	//Esperamos a que los hijos finalizen de procesar los md5
+	//wait(NULL); 
 
-	wait(NULL); //Esperamos a que el hijo finalize de procesar los md5
-
-	//En esta seccion extraemos la informacion procesada por los hijos
-
-	//DEBERIA HACERSE CON char ** y malloc
-	char hashes[4][100];
+	char hashes[files][100];
 	int pointer = 0;
-	int character = 0;
+
 	char * curr = hashes[pointer];
-	while(read(pipeChildToFather[0], curr, 1) == 1){
-		if(*curr == '\n'){
-			*curr = '\0';
-			pointer++;
-			curr = hashes[pointer];
+	
+	while(assignedOrder != queueSize){ //Deberia ser assignedOrder != queueSize, solo para probar
+		
+		orderQueue = assignWork(slaves, orderQueue, queueSize, &assignedOrder); 
+		//printf("--Despues de asignar %d tareas. Quedan %d--\n", assignedOrder, queueSize - assignedOrder);	
+
+
+		for(i = 0; i < SLAVES_NUM; i++){
+			if(slaves[i].isWorking){
+				while(read(slaves[i].pipeChildToFather[0], curr, 1) == -1);	
+				printf("Encontre un -1\n");
+				while(read(slaves[i].pipeChildToFather[0], curr, 1) == 1){
+					if(*curr == '\n'){
+						*curr = '\0';
+						pointer++;
+						slaves[i].isWorking = false;
+						curr = hashes[pointer];
+					}
+					else{
+						curr++;
+					}
+				}
+			}
 		}
-		else{
-			curr++;
-		}
+	
+		if(assignedOrder == queueSize){ //Deberia ser assignedOrder == queueSize, solo para probar
+			for(i = 0; i < SLAVES_NUM; i++){
+					write(slaves[i].pipeFatherToChild[1],"x",1);
+			}
+
+		} 
 	}
-	//Imprimo para revisar su correcto procesamiento
+
 	int j = 0;
-	for(j = 0; j < 4 ; j++)
+	for(j = 0; j < queueSize ; j++)
 		printf("Desde Padre: %s\n" , hashes[j]);
+	//Imprimo para revisar su correcto procesamiento
+
 
 	int pid2;
 	int status;
 	while ((pid2=waitpid(-1,&status,0))!=-1) {
-        printf("Process %d terminated\n",pid2);
+        printf("Process %d finished\n",pid2);
     }
 }
 
@@ -165,4 +147,95 @@ int loadFiles(const char *dirname, queue_o queue, int files){
 
 	closedir(dir);
 	return files;
+}
+
+
+slaves_o * createSlaves(){
+	int i;
+	slaves_o * slaves;
+
+	slaves = (slaves_o *)calloc(SLAVES_NUM, sizeof(slaves_o));
+
+	if(slaves == NULL) {
+	    perror("[ERROR!] Couldn't allocate space for slaves!");
+	    wait(NULL);
+	    _exit(1);
+  	}
+
+
+	for(i = 0; i < SLAVES_NUM; i++){
+		/* Comunicación bidireccional: Comunico a mi aplicacion via dos pipe con uno de los esclavos */
+		pid_t pid;
+
+		slaves[i].isWorking = false;
+
+	  	if( pipe(slaves[i].pipeFatherToChild) == -1 ) {
+	        printf("[ERROR!] Couldn't open the pipe Father->Child!\n");
+	    }
+
+	    if( pipe(slaves[i].pipeChildToFather) == -1 ) {
+	        printf("[ERROR!] Couldn't open the pipe Child->Father!\n");
+	    }
+
+
+	    
+	   	//fcntl(slaves[i].pipeChildToFather[0], F_SETFL,  O_NONBLOCK);
+
+		//Start slave
+		pid = fork();
+		int flags = fcntl(slaves[i].pipeChildToFather[0], F_GETFL, 0);
+		switch(pid){
+			case -1:
+				perror("[ERROR!] Couldn't fork correctly!\n");
+				wait(NULL);
+				exit(EXIT_FAILURE);
+				break;
+			case 0:
+				//If i'm the child, execute ./slave
+				dup2(slaves[i].pipeFatherToChild[0], STDIN_FILENO);
+				if(dup2(slaves[i].pipeChildToFather[1], STDOUT_FILENO) == -1)
+					perror("[ERROR!] Couldn't redirect stdout of child");
+		 		close(slaves[i].pipeFatherToChild[1]);
+		 		close(slaves[i].pipeChildToFather[0]);
+				execlp(SLAVE_EXEC, SLAVE_EXEC, NULL);
+				perror("[ERROR!] Couldn't execute worker in forked child!");
+				wait(NULL);
+				break;
+			default:
+				//If i'm the application process
+				//dup2(slaves[i].pipeChildToFather[0], STDIN_FILENO);
+				fcntl(slaves[i].pipeChildToFather[0], F_SETFL, flags | O_NONBLOCK);
+				close(slaves[i].pipeFatherToChild[0]);
+				close(slaves[i].pipeChildToFather[1]);
+				break;
+		}
+	}
+
+	return slaves;
+	
+}
+
+queue_o assignWork(slaves_o * slaves, queue_o orderQueue, int queueSize, int * assignedOrder){
+	int i, j;
+	printf("Envie pedidos\n");
+	for(i = 0; i < SLAVES_NUM && queueSize != *assignedOrder; i++){	
+		if(slaves[i].isWorking == false){
+			for(j = 0; j < ORDERS_NUM; j++){
+				if(orderQueue->first->order.processed == false){
+					write(slaves[i].pipeFatherToChild[1], orderQueue->first->order.filename, strlen(orderQueue->first->order.filename));
+					write(slaves[i].pipeFatherToChild[1], "|", 1);
+					node_o * temp = deQueue(orderQueue);
+					printf("Enviado: %s\n", temp->order.filename);
+					slaves[i].isWorking = true;
+					(*assignedOrder)++;
+				} else {
+					printf("[ERROR!] Trying to process a file that has already been processed !\n");
+					break; //SACAR
+				}
+
+			} write(slaves[i].pipeFatherToChild[1], "", 1);
+		}
+	}
+
+	return orderQueue;
 }
