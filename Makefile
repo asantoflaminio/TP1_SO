@@ -24,7 +24,7 @@ $(QUEUE): $(SOURCES_QUEUE)
 	$(GCC) -c $(SOURCES_QUEUE)
 
 $(VIEW): $(SOURCES_VIEW)  
-	$(GCC) -c $(SOURCES_VIEW) -o $(VIEW)
+	$(GCC) $(SOURCES_VIEW) -o $(VIEW)
 
 clean:
 	rm -rf *.o $(APPLICATION) $(SLAVE) $(VIEW)

@@ -12,6 +12,8 @@
 #include "include/types.h"
 #include "include/slave.h"
 
+FILE *file;
+
 
 int 
 main(int argc, char* argv[]){
@@ -26,10 +28,44 @@ main(int argc, char* argv[]){
 }
 
 void start(const char *dirname){
+
 	int files = 0;
 	int i;
 	queue_o orderQueue;
 	slaves_o * slaves;
+	key_t key;
+	int id;
+	int idSem;
+	char* shm; 
+
+	key = ftok("/home", 123); //es el que habia puesto en view
+	if (key == -1) {
+		perror("Error during key generation");
+		wait(NULL);
+		exit(1);
+	}
+
+	id = shmget(key, MYSIZE, 0777 | IPC_CREAT);
+	if(id == -1){
+		perror("Error while creating shared memory");
+		wait(NULL);
+		exit(1);
+	}
+
+	shm = shmat(id, NULL, 0);
+	if(shm == (char*) -1){
+		perror("Error while taking a segment");
+		wait(NULL);
+		exit(1);
+	}
+
+	idSem = semget (key, 1, 0777 | IPC_CREAT);
+	if (idSem == -1)
+	{
+		printf("Error during semaphore creation\n");
+		wait(NULL);
+		exit (1);
+	}
 
 	//Create queue
 	printf("Creating order queue...\n");
@@ -71,21 +107,21 @@ void start(const char *dirname){
 
 	char * curr = hashes[pointer];
 	
-	while(assignedOrder != queueSize){ //Deberia ser assignedOrder != queueSize, solo para probar
+	while(finishOrder != queueSize){ 
 		
-		orderQueue = assignWork(slaves, orderQueue, queueSize, &assignedOrder); 
-		//printf("--Despues de asignar %d tareas. Quedan %d--\n", assignedOrder, queueSize - assignedOrder);	
+		if(assignedOrder != queueSize)
+			orderQueue = assignWork(slaves, orderQueue, queueSize, &assignedOrder); 
+			//printf("--Despues de asignar %d tareas. Quedan %d--\n", assignedOrder, queueSize - assignedOrder);	
 
 
 		for(i = 0; i < SLAVES_NUM; i++){
 			if(slaves[i].isWorking){
-				while(read(slaves[i].pipeChildToFather[0], curr, 1) == -1);	
-				printf("Encontre un -1\n");
 				while(read(slaves[i].pipeChildToFather[0], curr, 1) == 1){
 					if(*curr == '\n'){
 						*curr = '\0';
 						pointer++;
 						slaves[i].isWorking = false;
+						finishOrder++;
 						curr = hashes[pointer];
 					}
 					else{
@@ -95,18 +131,32 @@ void start(const char *dirname){
 			}
 		}
 	
-		if(assignedOrder == queueSize){ //Deberia ser assignedOrder == queueSize, solo para probar
-			for(i = 0; i < SLAVES_NUM; i++){
-					write(slaves[i].pipeFatherToChild[1],"x",1);
-			}
 
-		} 
 	}
 
+	for(i = 0; i < SLAVES_NUM; i++){
+		write(slaves[i].pipeFatherToChild[1],"x",1);
+	}
+
+	
+	file = fopen("my_hashes.txt", "w+");
+	if (file==NULL) {
+		perror("Txt file error");
+		exit(1);
+	}
+	
+	//char* myhashes = malloc(queueSize*hashes[0]);
+
 	int j = 0;
-	for(j = 0; j < queueSize ; j++)
+	for(j = 0; j < queueSize ; j++){
+
 		printf("Desde Padre: %s\n" , hashes[j]);
+		fputs(hashes[j],file);
+		fputs("\n",file);
+		
+	}
 	//Imprimo para revisar su correcto procesamiento
+	
 
 
 	int pid2;
@@ -114,6 +164,8 @@ void start(const char *dirname){
 	while ((pid2=waitpid(-1,&status,0))!=-1) {
         printf("Process %d finished\n",pid2);
     }
+
+    fclose ( file );
 }
 
 
@@ -217,7 +269,7 @@ slaves_o * createSlaves(){
 
 queue_o assignWork(slaves_o * slaves, queue_o orderQueue, int queueSize, int * assignedOrder){
 	int i, j;
-	printf("Envie pedidos\n");
+	
 	for(i = 0; i < SLAVES_NUM && queueSize != *assignedOrder; i++){	
 		if(slaves[i].isWorking == false){
 			for(j = 0; j < ORDERS_NUM; j++){

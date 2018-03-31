@@ -5,7 +5,7 @@
 int main(void){
 	
 	//ftok recibe path y nro como parametro
-	/*key_t key;
+	key_t key;
 	int id;
 	int idSem;
 	char* shm; //esta es mi memoria compartida. Va a ser un string de chars. 
@@ -13,39 +13,39 @@ int main(void){
 	int done = 0;
 	int cant=1;
 	int i=0;
-	int status=1;*/
+	int status=1;
 
-	/*key = ftok ("/home", 123); // uso un directorio que este en toda PC
+	key = ftok ("/home", 123); // uso un directorio que este en toda PC
 	if(key == -1){
 		perror("Error during key generation");
 		wait(NULL);
 		exit(1);
-	}*/
+	}
 
 	//creamos zona de memoria compartida. Hay que chequear que no sea -1.
-	/*id = shmget(key, MYSIZE, 0777 | IPC_CREAT);
+	id = shmget(key, MYSIZE, 0777 | IPC_CREAT);
 	if(id == -1){
 		perror("Error while creating shared memory");
 		wait(NULL);
 		exit(1);
-	}*/
+	}
 
 	//Le indicamos al sistema que tome dirección donde fijar el segmento.
-	/*shm = shmat(id, NULL, 0);
+	shm = shmat(id, NULL, 0);
 	if(shm == (char*) -1){
 		perror("Error while taking a segment");
 		wait(NULL);
 		exit(1);
-	}*/
+	}
 
 	//esto va a ser despues para el semaforo
-	/*idSem = semget (key, 1, 0777 | IPC_CREAT);
+	idSem = semget (key, 1, 0777 | IPC_CREAT);
 	if (idSem == -1)
 	{
 		printf("Error during semaphore creation\n");
 		wait(NULL);
 		exit (1);
-	}*/
+	}
 
 
 
@@ -91,12 +91,12 @@ int main(void){
 
 	/*modifySemaphore(-1,idSem);
 	//shm[1]=-1;
-	modifySemaphore(1,idSem);
+	modifySemaphore(1,idSem);*/
 
 	
 	//cuando terminamos liberamos todo. Chequear igual si es necesario hacerlo. 
 	shmdt ((char *)shm);
-	shmctl (id, IPC_RMID, (struct shmid_ds *)NULL);*/
+	shmctl (id, IPC_RMID, (struct shmid_ds *)NULL);
 
 	printf("View has concluded\n");
 	return 0;
@@ -104,10 +104,11 @@ int main(void){
 }
 
 //Tal vez convendria moverlo a otro lado
-/*void modifySemaphore(int x,int idSem){
+void modifySemaphore(int x,int idSem){
 	struct sembuf operation;
 	operation.sem_num = 0;
 	operation.sem_op = x;
 	operation.sem_flg = 0;
 	semop(idSem, &operation, 1);
-}*/
+}
+
