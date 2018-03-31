@@ -90,7 +90,7 @@ void start(const char *dirname){
         error("[ERROR!] Couldn't start semaphore!\n");
     }
    
-    modifySemaphore(1, id_sem);
+    //modifySemaphore(1, id_sem);
 
 	printf("Creating order queue...\n");
 	orderQueue = newQueue();
@@ -143,10 +143,10 @@ void start(const char *dirname){
 						finishOrder++;
 						hashes[pointer] = malloc(100 * sizeof(char));
 						strcpy(hashes[pointer], buff); 
-						modifySemaphore(1,id_sem);
+						//modifySemaphore(1,id_sem);
 						strcat(shm, buff);
 						strcat(shm, "|"); // -->La idea es generar en memoria compartida un string largo que sea hash1|hash2|hash3 y asi..
-						modifySemaphore(-1,id_sem);
+						//modifySemaphore(-1,id_sem);
 						curr = buff;
 						pointer++;
 					}
@@ -163,8 +163,8 @@ void start(const char *dirname){
 	free(buff);
 
 	// Chequeo que se me armo en el string largo de forma correcta...
-	/*
-	char * s;
+	
+	/*char * s;
 	printf("Shared memory: ");
 	
 	for(s = shm; *s != '?'; s++)
@@ -197,10 +197,10 @@ void start(const char *dirname){
         printf("Process %d finished\n",pid);
     }
 
-
-	/*shmdt ((char *)shm);
-	semctl(id_sem, 0, IPC_RMID); // Remove the semaphore
-	*/
+    shmdt(shm);
+	shmctl(id_shmem,  IPC_RMID, 0);
+	//semctl(id_sem, 0, IPC_RMID); // Remove the semaphore
+	
     fclose(file);
     printf("Finishing application process...\n");
     

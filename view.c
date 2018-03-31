@@ -42,8 +42,7 @@ int main(void){
 	char * s = shm;
 
 	while(!done){
-		modifySemaphore(-1,id_sem);
-		
+		//modifySemaphore(-1,id_sem);
 		
 		if(*s == '?')
 			done = 1;
@@ -58,11 +57,12 @@ int main(void){
 		}
 
 
-		modifySemaphore(1,id_sem);
+		//modifySemaphore(1,id_sem);
 	}
 
 
-
+	shmdt(shm);
+	shmctl(id_shmem,  IPC_RMID, 0);
 	
     printf("Finishing view process...\n");
 	return 0;
