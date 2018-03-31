@@ -5,47 +5,43 @@
 int main(void){
 	
 	//ftok recibe path y nro como parametro
-	/*key_t key;
+	key_t key;
 	int id;
 	int idSem;
-	char* shm; //esta es mi memoria compartida. Va a ser un string de chars. 
+	char *shm; //esta es mi memoria compartida. Va a ser un string de chars. 
 	char *s; 
 	int done = 0;
 	int cant=1;
 	int i=0;
-	int status=1;*/
+	int status=1;
 
-	/*key = ftok ("/home", 123); // uso un directorio que este en toda PC
+	key = ftok("/bin/ls", 123); 
 	if(key == -1){
-		perror("Error during key generation");
-		wait(NULL);
+		perror("[ERROR!] Couldn't generate the key!\n");
 		exit(1);
-	}*/
+	}
 
-	//creamos zona de memoria compartida. Hay que chequear que no sea -1.
-	/*id = shmget(key, MYSIZE, 0777 | IPC_CREAT);
-	if(id == -1){
-		perror("Error while creating shared memory");
-		wait(NULL);
+	id = shmget(key, MYSIZE, 0777);
+	if(id < 0){
+		perror("[ERROR!] Couldn't get the identifier of the segment!\n");
 		exit(1);
-	}*/
+	}
 
 	//Le indicamos al sistema que tome dirección donde fijar el segmento.
-	/*shm = shmat(id, NULL, 0);
+	shm = shmat(id, 0, 0);
 	if(shm == (char*) -1){
-		perror("Error while taking a segment");
-		wait(NULL);
+		perror("[ERROR!] Couldn't take the shared segment!\n");
 		exit(1);
-	}*/
+	}
 
 	//esto va a ser despues para el semaforo
-	/*idSem = semget (key, 1, 0777 | IPC_CREAT);
+	idSem = semget (key, 1, 0777 | IPC_CREAT);
 	if (idSem == -1)
 	{
-		printf("Error during semaphore creation\n");
-		wait(NULL);
+		perror("[ERROR!] Couldn't create semaphore!\n");
 		exit (1);
-	}*/
+	}
+	
 
 
 

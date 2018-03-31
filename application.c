@@ -35,41 +35,36 @@ void start(const char *dirname){
 	slaves_o * slaves;
 	FILE *file;
 
-	//Podriamos tener un .c de semaforos y shared memory.. (para cuando anden las cosas modularizamos ;) )
-	/*key_t key;
+	key_t key;
 	int id;
 	int idSem;
-	char* shm; 
+	char *shm; 
 
-	key = ftok("/home", 123); //es el que habia puesto en view
+	key = ftok("/bin/ls", 123); 
 	if (key == -1) {
-		perror("Error during key generation");
-		wait(NULL);
+		perror("[ERROR!] Couldn't generate the key!\n");
 		exit(1);
 	}
 
 	id = shmget(key, MYSIZE, 0777 | IPC_CREAT);
-	if(id == -1){
-		perror("Error while creating shared memory");
-		wait(NULL);
+	if(id < 0){
+		perror("[ERROR!] Couldn't create shared memory!\n");
 		exit(1);
 	}
-
-	shm = shmat(id, NULL, 0);
+	
+	shm = shmat(id, 0, 0);
 	if(shm == (char*) -1){
-		perror("Error while taking a segment");
-		wait(NULL);
+		perror("[ERROR!] Couldn't take the shared segment!\n");
 		exit(1);
 	}
-
+	
 	idSem = semget (key, 1, 0777 | IPC_CREAT);
 	if (idSem == -1)
 	{
-		printf("Error during semaphore creation\n");
-		wait(NULL);
+		perror("[ERROR!] Couldn't create semaphore!\n");
 		exit (1);
-	}/*
-	*/
+	}
+	
 	printf("Creating order queue...\n");
 	orderQueue = newQueue();
 
@@ -81,7 +76,7 @@ void start(const char *dirname){
 		printf("No files to process\n");
 		exit(EXIT_SUCCESS);
 	} else {
-		/* Probando que se guarde todo ok en la queue - Despues borrar esto */
+		
 		node_o * current = orderQueue->first;
 		
 		while(current != NULL){
@@ -103,15 +98,45 @@ void start(const char *dirname){
 
 	char **hashes = (char **)malloc(files * sizeof (char *));
 
-	distributeWork(finishOrder, assignedOrder, queueSize, pointer, orderQueue, slaves, hashes);
-	
+	char * buff = malloc(100 * sizeof(char));
+	char * curr = buff;
+	int i;
+
+	while(finishOrder != queueSize){ 
+
+		if(assignedOrder != queueSize)
+			orderQueue = assignWork(slaves, orderQueue, queueSize, &assignedOrder); 	
+
+		for(i = 0; i < SLAVES_NUM; i++){
+			if(slaves[i].isWorking){
+				while(read(slaves[i].pipeChildToFather[0], curr, 1) == 1){
+					if(*curr == '\n'){
+						*curr = '\0';
+						slaves[i].isWorking = false;
+						finishOrder++;
+						hashes[pointer] = malloc(100 * sizeof(char));
+						strcpy(hashes[pointer], buff); 
+						curr = buff;
+						pointer++;
+					}
+					else{
+						curr++;
+					}
+				}
+			}
+		}
+		
+	}
+
+	free(buff);
+
+	printf("Stopping slaves from working..\n");
 	stopSlaves(slaves);
 	
 
-	// Ale comente todo esto porque si lo saco me da seg fault, quiza es porque ahora cambie hashes por un **..
-	/*file = fopen("my_hashes.txt", "w+");
+	file = fopen("my_hashes.txt", "w+");
 	if (file==NULL) {
-		perror("Txt file error");
+		perror("[ERROR!] File error!\n");
 		exit(1);
 	}
 	
@@ -124,17 +149,13 @@ void start(const char *dirname){
 		fputs(hashes[j],file);
 		fputs("\n",file);
 		
-	}*/
-	//Imprimo para revisar su correcto procesamiento
+	}
 
-	int j = 0;
-	for(j = 0; j < queueSize ; j++)
-		printf("Desde Padre: %s\n" , hashes[j]);
-	
 	int pid, status;
 	while ((pid=waitpid(-1,&status,0)) != -1) {
         printf("Process %d finished\n",pid);
     }
+    
 }
 
 
@@ -259,39 +280,6 @@ queue_o assignWork(slaves_o * slaves, queue_o orderQueue, int queueSize, int * a
 	return orderQueue;
 }
 
-void distributeWork(int finishOrder, int assignedOrder, int queueSize, int pointer, queue_o orderQueue, slaves_o * slaves, char ** hashes){
-	char * buff = malloc(100 * sizeof(char));
-	char * curr = buff;
-	int i;
-
-	while(finishOrder != queueSize){ 
-
-		if(assignedOrder != queueSize)
-			orderQueue = assignWork(slaves, orderQueue, queueSize, &assignedOrder); 	
-
-		for(i = 0; i < SLAVES_NUM; i++){
-			if(slaves[i].isWorking){
-				while(read(slaves[i].pipeChildToFather[0], curr, 1) == 1){
-					if(*curr == '\n'){
-						*curr = '\0';
-						slaves[i].isWorking = false;
-						finishOrder++;
-						hashes[pointer] = malloc(100 * sizeof(char));
-						strcpy(hashes[pointer], buff); 
-						curr = buff;
-						pointer++;
-					}
-					else{
-						curr++;
-					}
-				}
-			}
-		}
-		
-	}
-
-	free(buff);
-}
 
 
 void stopSlaves(slaves_o * slaves){
