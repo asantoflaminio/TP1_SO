@@ -5,18 +5,14 @@
 int main(void){
 	
 	printf("Starting view process...\n");
-	//ftok recibe path y nro como parametro
+	
 	key_t key;
 	int id_shmem;
 	int id_sem;
-	char *shm; //esta es mi memoria compartida. Va a ser un string de chars. 
-	char *s; 
+	char *shm;
 	int done = 0;
-	int cant=1;
-	int i=0;
-	int status=1;
 
-	key = ftok("/bin/ls", 123); 
+	key = ftok("/home", 123); 
 	if(key == -1){
 		perror("[ERROR!] Couldn't generate the key!\n");
 		exit(1);
@@ -27,9 +23,9 @@ int main(void){
 		perror("[ERROR!] Couldn't get the identifier of the segment!\n");
 		exit(1);
 	}
-
+	
 	//Le indicamos al sistema que tome dirección donde fijar el segmento.
-	shm = shmat(id_shmem, 0, 0);
+	shm = (char*) shmat(id_shmem, 0, 0);
 	if(shm == (char*) -1){
 		perror("[ERROR!] Couldn't take the shared segment!\n");
 		exit(1);
@@ -43,37 +39,32 @@ int main(void){
 		exit (1);
 	}
 	
-	//aca vendria la impresion de todos los hashes y el uso de semaforos
-	modifySemaphore(-1,id_sem);
-	printf(".......Writing from view.......\n");
-	for(s=shm; *s != 0; s++)
-		printf("%c", *s);
-	modifySemaphore(1,id_sem);
+	char * s = shm;
 
-	/*while(!done){
+	while(!done){
 		modifySemaphore(-1,id_sem);
-		if(*shm != EOF){
-			while(*shm!='|'){
-				printf("%c", *shm);
-				shm++;
-			}
-			printf("\n");
-		}else{
+		
+		
+		if(*s == '?')
 			done = 1;
+		else if(*s != '\0'){
+			printf("--- From view: ");
+			while(*s != '|'){
+				printf("%c", *s);
+				s++;
+			} 
+			s++;
+			printf("----\n");
 		}
+
+
 		modifySemaphore(1,id_sem);
-	}*/
-	
-	/*modifySemaphore(-1,id_sem);
-	//shm[1]=-1;
-	modifySemaphore(1,id_sem);
+	}
+
+
 
 	
-	//cuando terminamos liberamos todo. Chequear igual si es necesario hacerlo. 
-	shmdt ((char *)shm);
-	shmctl (id, IPC_RMID, (struct shmid_ds *)NULL);*/
-
-	printf("View has concluded\n");
+    printf("Finishing view process...\n");
 	return 0;
 
 }

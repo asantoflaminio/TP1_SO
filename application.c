@@ -58,7 +58,8 @@ void start(const char *dirname){
 	int id_sem;
 	char *shm; 
 
-	key = ftok("/bin/ls", 123); 
+
+	key = ftok("/home", 123); 
 	if (key == -1) {
 		perror("[ERROR!] Couldn't generate the key!\n");
 		exit(1);
@@ -70,7 +71,7 @@ void start(const char *dirname){
 		exit(1);
 	}
 	
-	shm = shmat(id_shmem, 0, 0);
+	shm = (char*) shmat(id_shmem, 0, 0);
 	if(shm == (char*) -1){
 		perror("[ERROR!] Couldn't take the shared segment!\n");
 		exit(1);
@@ -90,7 +91,6 @@ void start(const char *dirname){
     }
    
     modifySemaphore(1, id_sem);
-
 
 	printf("Creating order queue...\n");
 	orderQueue = newQueue();
@@ -114,7 +114,7 @@ void start(const char *dirname){
 		
 		printf("Queue size: %d\n", orderQueue->size);
 	}
-	
+
 	printf("Creating %d slaves..\n", SLAVES_NUM);
 	slaves = createSlaves();
 
@@ -124,10 +124,10 @@ void start(const char *dirname){
 	int pointer = 0;
 
 	char **hashes = (char **)malloc(files * sizeof (char *));
-
 	char * buff = malloc(100 * sizeof(char));
 	char * curr = buff;
 	int i;
+	
 
 	while(finishOrder != queueSize){ 
 
@@ -141,10 +141,12 @@ void start(const char *dirname){
 						*curr = '\0';
 						slaves[i].isWorking = false;
 						finishOrder++;
-						modifySemaphore(1,id_sem);
 						hashes[pointer] = malloc(100 * sizeof(char));
-						modifySemaphore(-1,id_sem);
 						strcpy(hashes[pointer], buff); 
+						modifySemaphore(1,id_sem);
+						strcat(shm, buff);
+						strcat(shm, "|"); // -->La idea es generar en memoria compartida un string largo que sea hash1|hash2|hash3 y asi..
+						modifySemaphore(-1,id_sem);
 						curr = buff;
 						pointer++;
 					}
@@ -157,11 +159,20 @@ void start(const char *dirname){
 		
 	}
 
+	strcat(shm,"?"); //-->Caracter donde finaliza mi string largo compartido para reconocer q tengo que salir del while(1) en view..
 	free(buff);
 
-	strcpy(shm, hashes[0]);
-
-
+	// Chequeo que se me armo en el string largo de forma correcta...
+	/*
+	char * s;
+	printf("Shared memory: ");
+	
+	for(s = shm; *s != '?'; s++)
+	printf("%c",*s);
+	
+	printf("\n");
+	*/
+	
 
 	printf("Stopping slaves from working..\n");
 	stopSlaves(slaves);
@@ -175,7 +186,7 @@ void start(const char *dirname){
 
 	int j = 0;
 	for(j = 0; j < queueSize ; j++){
-		printf("From application: %s\n" , hashes[j]);
+		//printf("From application: %s\n" , hashes[j]);
 		fputs(hashes[j],file);
 		fputs("\n",file);
 		

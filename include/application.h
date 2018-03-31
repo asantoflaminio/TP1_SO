@@ -4,7 +4,7 @@
 #include "queue.h"
 #include "slave.h"
 
-#define MYSIZE 100 //no se por ahora le puse este size tmbn definido en view.h
+#define MYSIZE 1000 //no se por ahora le puse este size tmbn definido en view.h
 #define ORDERS_NUM 2
 #define SLAVES_NUM 3
 #define SEPARATOR "/"
