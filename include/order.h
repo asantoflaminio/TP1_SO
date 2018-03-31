@@ -4,8 +4,6 @@
 #include <stdint.h>
 #include "types.h"
 
-#define HASHMD5 33
-
 typedef struct {
   	char * filename;
   	boolean processed;

@@ -6,10 +6,10 @@
 
 typedef struct orderNode node_o;
 
-struct orderNode {
+typedef struct orderNode {
 	order_o order;
 	node_o * next;
-};
+} node_o;
 
 typedef struct orderQueue * queue_o;
 
@@ -25,7 +25,7 @@ queue_o newQueue();
 /* Adds a new element at the end of the queue. */
 void enQueue(queue_o q, order_o o);
 
-/* Removes the first element of the queue. */
+/* Removes and returns the first element of the queue. */
 node_o * deQueue(queue_o q);
 
 /* Returns if the queue is empty. */
