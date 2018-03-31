@@ -36,7 +36,7 @@ void start(const char *dirname){
 	FILE *file;
 
 	//Podriamos tener un .c de semaforos y shared memory.. (para cuando anden las cosas modularizamos ;) )
-	key_t key;
+	/*key_t key;
 	int id;
 	int idSem;
 	char* shm; 
@@ -68,8 +68,8 @@ void start(const char *dirname){
 		printf("Error during semaphore creation\n");
 		wait(NULL);
 		exit (1);
-	}
-
+	}/*
+	*/
 	printf("Creating order queue...\n");
 	orderQueue = newQueue();
 
