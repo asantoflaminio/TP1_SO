@@ -25,19 +25,37 @@ main(int argc, char* argv[]){
 		return -1;
 	}
 
-	start(argv[2]);
+	int pid = fork();
+
+	switch(pid){
+		case -1:
+			perror("[ERROR!] Couldn't fork correctly!\n");
+			wait(NULL);
+			exit(EXIT_FAILURE);
+			break;
+		case 0:
+			execlp(VIEW_EXEC, VIEW_EXEC, NULL);
+			perror("[ERROR!] Couldn't execute worker in forked child!\n");
+			wait(NULL);
+			break;
+		default:
+			start(argv[2]);
+			break;
+	}
+	
 	return 0;
 }
 
 void start(const char *dirname){
+	printf("Starting application process...\n");
 	int files;
 	queue_o orderQueue;
 	slaves_o * slaves;
 	FILE *file;
 
 	key_t key;
-	int id;
-	int idSem;
+	int id_shmem;
+	int id_sem;
 	char *shm; 
 
 	key = ftok("/bin/ls", 123); 
@@ -46,25 +64,34 @@ void start(const char *dirname){
 		exit(1);
 	}
 
-	id = shmget(key, MYSIZE, 0777 | IPC_CREAT);
-	if(id < 0){
+	id_shmem = shmget(key, MYSIZE, 0777 | IPC_CREAT);
+	if(id_shmem < 0){
 		perror("[ERROR!] Couldn't create shared memory!\n");
 		exit(1);
 	}
 	
-	shm = shmat(id, 0, 0);
+	shm = shmat(id_shmem, 0, 0);
 	if(shm == (char*) -1){
 		perror("[ERROR!] Couldn't take the shared segment!\n");
 		exit(1);
 	}
 	
-	idSem = semget (key, 1, 0777 | IPC_CREAT);
-	if (idSem == -1)
+	id_sem = semget (key, 1, 0777 | IPC_CREAT);
+	if (id_sem == -1)
 	{
 		perror("[ERROR!] Couldn't create semaphore!\n");
 		exit (1);
 	}
 	
+	
+	if (semctl(id_sem, 0, SETVAL, 1) < 0) {        
+   	 	perror(NULL);
+        error("[ERROR!] Couldn't start semaphore!\n");
+    }
+   
+    modifySemaphore(1, id_sem);
+
+
 	printf("Creating order queue...\n");
 	orderQueue = newQueue();
 
@@ -114,7 +141,9 @@ void start(const char *dirname){
 						*curr = '\0';
 						slaves[i].isWorking = false;
 						finishOrder++;
+						modifySemaphore(1,id_sem);
 						hashes[pointer] = malloc(100 * sizeof(char));
+						modifySemaphore(-1,id_sem);
 						strcpy(hashes[pointer], buff); 
 						curr = buff;
 						pointer++;
@@ -130,6 +159,10 @@ void start(const char *dirname){
 
 	free(buff);
 
+	strcpy(shm, hashes[0]);
+
+
+
 	printf("Stopping slaves from working..\n");
 	stopSlaves(slaves);
 	
@@ -139,13 +172,10 @@ void start(const char *dirname){
 		perror("[ERROR!] File error!\n");
 		exit(1);
 	}
-	
-	//char* myhashes = malloc(queueSize*hashes[0]);
 
 	int j = 0;
 	for(j = 0; j < queueSize ; j++){
-
-		printf("Desde Padre: %s\n" , hashes[j]);
+		printf("From application: %s\n" , hashes[j]);
 		fputs(hashes[j],file);
 		fputs("\n",file);
 		
@@ -155,6 +185,13 @@ void start(const char *dirname){
 	while ((pid=waitpid(-1,&status,0)) != -1) {
         printf("Process %d finished\n",pid);
     }
+
+
+	/*shmdt ((char *)shm);
+	semctl(id_sem, 0, IPC_RMID); // Remove the semaphore
+	*/
+    fclose(file);
+    printf("Finishing application process...\n");
     
 }
 
@@ -289,3 +326,10 @@ void stopSlaves(slaves_o * slaves){
 	}
 }
 
+void modifySemaphore(int x, int id_sem){
+	struct sembuf operation;
+	operation.sem_num = 0;
+	operation.sem_op = x;
+	operation.sem_flg = 0;
+	semop(id_sem, &operation, 1);
+} // -->Despues sacar esto de aca!!

@@ -10,6 +10,7 @@
 #define SEPARATOR "/"
 #define VERTICAL_SLASH '|'
 #define SLAVE_EXEC "./slave"
+#define VIEW_EXEC "./view"
 /* Character send by application to end slave process */
 #define STOP_SLAVES "+"
 
@@ -25,5 +26,5 @@ void start(const char *dirname);
 slaves_o * createSlaves();
 queue_o assignWork(slaves_o * slaves, queue_o orderQueue, int queueSize, int * assignedOrder);
 void stopSlaves(slaves_o * slaves);
-
+void modifySemaphore(int x, int id_sem); // -->Despues sacar esto de aca!!
 #endif
