@@ -3,12 +3,18 @@
 
 #include "queue.h"
 #include "slave.h"
+#include <sys/types.h>
+#include <sys/ipc.h>
+#include <sys/shm.h>
+#include <sys/wait.h>
+#include <sys/sem.h>
 
 #define ORDERS_NUM 2
 #define SLAVES_NUM 2
 #define SEPARATOR "/"
 #define VERTICAL_SLASH "|"
 #define SLAVE_EXEC "./slave"
+#define MYSIZE 10000 //no se por ahora le puse este size tmbn definido en view.h
 
 /* Searches all available files from dirname and enqueues 
 them into queue. Returns how many files where enqueued. */
