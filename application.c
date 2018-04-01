@@ -17,6 +17,21 @@
 #include "include/slave.h"
 #include "include/types.h"
 
+#if defined(__GNU_LIBRARY__) && !defined(_SEM_SEMUN_UNDEFINED)
+// La union ya está definida en sys/sem.h
+#else
+// Tenemos que definir la union
+union semun 
+{ 
+	int val;
+	struct semid_ds *buf;
+	unsigned short int *array;
+	struct seminfo *__buf;
+};
+#endif
+
+
+
 int 
 main(int argc, char* argv[]){
 	
@@ -57,6 +72,7 @@ void start(const char *dirname){
 	int id_shmem;
 	int id_sem;
 	char *shm; 
+	union semun arg;
 
 
 	key = ftok("/home", 123); 
@@ -77,20 +93,16 @@ void start(const char *dirname){
 		exit(1);
 	}
 	
-	id_sem = semget (key, 1, 0777 | IPC_CREAT);
+	id_sem = semget (key, 1, 0666 | IPC_CREAT);
 	if (id_sem == -1)
 	{
 		perror("[ERROR!] Couldn't create semaphore!\n");
 		exit (1);
 	}
 	
-	
-	if (semctl(id_sem, 0, SETVAL, 1) < 0) {        
-   	 	perror(NULL);
-        error("[ERROR!] Couldn't start semaphore!\n");
-    }
-   
-    //modifySemaphore(1, id_sem);
+	arg.val = 0;
+	semctl(id_sem, 0, SETVAL, &arg);
+   	modifySemaphore(1, id_sem);
 
 	printf("Creating order queue...\n");
 	orderQueue = newQueue();
@@ -143,10 +155,13 @@ void start(const char *dirname){
 						finishOrder++;
 						hashes[pointer] = malloc(100 * sizeof(char));
 						strcpy(hashes[pointer], buff); 
-						//modifySemaphore(1,id_sem);
+						modifySemaphore(-1,id_sem);
+						//puts("Entro el padre, el hijo espera"); -->Lo usamos para debuggear el semaforo
+						//while(1); -->Lo usamos para debuggear el semaforo
 						strcat(shm, buff);
 						strcat(shm, "|"); // -->La idea es generar en memoria compartida un string largo que sea hash1|hash2|hash3 y asi..
-						//modifySemaphore(-1,id_sem);
+						//puts("**El padre sale"); -->Lo usamos para debuggear el semaforo
+						modifySemaphore(1,id_sem);
 						curr = buff;
 						pointer++;
 					}
@@ -159,7 +174,10 @@ void start(const char *dirname){
 		
 	}
 
+	modifySemaphore(1,id_sem);
 	strcat(shm,"?"); //-->Caracter donde finaliza mi string largo compartido para reconocer q tengo que salir del while(1) en view..
+	modifySemaphore(-1,id_sem);
+
 	free(buff);
 
 	// Chequeo que se me armo en el string largo de forma correcta...
@@ -199,7 +217,7 @@ void start(const char *dirname){
 
     shmdt(shm);
 	shmctl(id_shmem,  IPC_RMID, 0);
-	//semctl(id_sem, 0, IPC_RMID); // Remove the semaphore
+	semctl(id_sem, 0, IPC_RMID); // Remove the semaphore
 	
     fclose(file);
     printf("Finishing application process...\n");
@@ -342,5 +360,17 @@ void modifySemaphore(int x, int id_sem){
 	operation.sem_num = 0;
 	operation.sem_op = x;
 	operation.sem_flg = 0;
-	semop(id_sem, &operation, 1);
+	semop(id_sem, &operation, 1); // semop() performs operations on selected semaphores
 } // -->Despues sacar esto de aca!!
+
+/* int semop(int semid, struct sembuf *sops, unsigned nsops);
+
+Each of the nsops elements in the array pointed to by sops specifies an operation to be performed on a single semaphore. 
+The elements of this structure are of type struct sembuf, containing the following members:
+unsigned short sem_num;   semaphore number 
+short          sem_op;   semaphore operation 
+short          sem_flg;  operation flags 
+
+If sem_op is a positive integer, the operation adds this value to the semaphore value (semval).
+
+*/

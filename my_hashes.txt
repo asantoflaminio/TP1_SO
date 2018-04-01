@@ -1,8 +1,12 @@
+Hash MD5 of test/chau: a1b7b17999a70733a9a1a653650a8e01
+Hash MD5 of test/Directorio2/archivo4: 7aac136b8b5473694fb0c2f1bff4bfaf
 Hash MD5 of test/hola: 322833d6167191e6921bad04f3a278f0
 Hash MD5 of test/Directorio1/archivo1: 9d7b9226b01320f7399365562a99b2b9
-Hash MD5 of test/Directorio2/archivo2: 1a37aa1fce5039e9a8de8bd1d3b59b0c
-Hash MD5 of test/doc2: 5372e5e3c9b8813c496b0996be256c95
 Hash MD5 of test/doc1: b166315a180d3682d8a074aa874b3bf9
 Hash MD5 of test/prueba: f4bdd4747b770336a561f6b765db2e8d
-Hash MD5 of test/chau: a1b7b17999a70733a9a1a653650a8e01
 Hash MD5 of test/Directorio2/archivo3: f62ee34c67f7aad6fd70e38788b40acc
+Hash MD5 of test/Directorio2/archivo7: 94723b2180cca6cb84ed7abd63d24497
+Hash MD5 of test/Directorio2/archivo2: 1a37aa1fce5039e9a8de8bd1d3b59b0c
+Hash MD5 of test/Directorio2/archivo6: 055ef4efc1713915e8d2774e0b3fc6cc
+Hash MD5 of test/Directorio2/archivo5: ab86a10a81603c6efd11ac0275753023
+Hash MD5 of test/doc2: 5372e5e3c9b8813c496b0996be256c95

@@ -1,7 +1,6 @@
 #include "include/view.h"
 
 
-
 int main(void){
 	
 	printf("Starting view process...\n");
@@ -39,10 +38,12 @@ int main(void){
 		exit (1);
 	}
 	
+
 	char * s = shm;
 
 	while(!done){
-		//modifySemaphore(-1,id_sem);
+		modifySemaphore(-1,id_sem);
+		//puts("Entro el hijo, el padre espera"); -->Lo usamos para debuggear el semaforo
 		
 		if(*s == '?')
 			done = 1;
@@ -53,11 +54,12 @@ int main(void){
 				s++;
 			} 
 			s++;
-			printf("----\n");
+			printf(" ---\n");
 		}
 
-
-		//modifySemaphore(1,id_sem);
+		//puts("**El hijo sale"); -->Lo usamos para debuggear el semaforo
+		modifySemaphore(1,id_sem); 
+		
 	}
 
 
