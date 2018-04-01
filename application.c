@@ -16,120 +16,86 @@
 #include "include/queue.h"
 #include "include/slave.h"
 #include "include/types.h"
+#include "include/mysemaphore.h"
 
-#if defined(__GNU_LIBRARY__) && !defined(_SEM_SEMUN_UNDEFINED)
-// La union ya está definida en sys/sem.h
-#else
-// Tenemos que definir la union
-union semun 
-{ 
-	int val;
-	struct semid_ds *buf;
-	unsigned short int *array;
-	struct seminfo *__buf;
-};
-#endif
-
+#define ANSI_RED     "\x1b[31m"
+#define ANSI_GREEN    "\x1b[32m"
+#define ANSI_BLUE    "\x1b[34m"
+#define ANSI_RESET   "\x1b[0m"
 
 
 int 
 main(int argc, char* argv[]){
-	
+	int pid, status;
+
 	if (argc != 3 || (strcmp(argv[1], "hash") != 0)) {
-		printf("The arguments were wrong. Format: hash <directory>\n");
+		printf("The arguments were wrong. Correct format: " ANSI_GREEN "hash <directory>\n" ANSI_RESET);
 		return -1;
 	}
-
-	int pid = fork();
-
-	switch(pid){
-		case -1:
-			perror("[ERROR!] Couldn't fork correctly!\n");
-			wait(NULL);
-			exit(EXIT_FAILURE);
-			break;
-		case 0:
-			execlp(VIEW_EXEC, VIEW_EXEC, NULL);
-			perror("[ERROR!] Couldn't execute worker in forked child!\n");
-			wait(NULL);
-			break;
-		default:
-			start(argv[2]);
-			break;
-	}
 	
+	printf("Starting...\n");
+	sleep(1.5);
+	start(argv[2]);
+
+
+	while ((pid=waitpid(-1,&status,0)) != -1) {
+        printf("Process %d finished\n",pid);
+    }
+
+    printf("Finishing application process...\n");
+			
 	return 0;
 }
 
 void start(const char *dirname){
-	printf("Starting application process...\n");
-	int files;
+	int files = 0;
 	queue_o orderQueue;
 	slaves_o * slaves;
-	FILE *file;
-
+	
 	key_t key;
+	
 	int id_shmem;
-	int id_sem;
 	char *shm; 
-	union semun arg;
-
-
-	key = ftok("/home", 123); 
-	if (key == -1) {
-		perror("[ERROR!] Couldn't generate the key!\n");
-		exit(1);
-	}
-
-	id_shmem = shmget(key, MYSIZE, 0777 | IPC_CREAT);
-	if(id_shmem < 0){
-		perror("[ERROR!] Couldn't create shared memory!\n");
-		exit(1);
-	}
 	
-	shm = (char*) shmat(id_shmem, 0, 0);
-	if(shm == (char*) -1){
-		perror("[ERROR!] Couldn't take the shared segment!\n");
-		exit(1);
-	}
-	
-	id_sem = semget (key, 1, 0666 | IPC_CREAT);
-	if (id_sem == -1)
-	{
-		perror("[ERROR!] Couldn't create semaphore!\n");
-		exit (1);
-	}
-	
-	arg.val = 0;
-	semctl(id_sem, 0, SETVAL, &arg);
+	int id_sem;
+
+	key = generateKey(getpid());
+
+	printf("Creating shared memory segment...\n");
+	shm = createSharedMemorySegment(&id_shmem, key);
+	sleep(1.5);
+
+	printf("Creating semaphore...\n");
+	createSemaphore(&id_sem, key);
+	changePermissions(id_sem);
+	sleep(1.5);
+
    	modifySemaphore(1, id_sem);
+   	menu();
+
+   	printf("Starting application process...Press ENTER to continue!\n");
+	while(getchar()!='\n');
 
 	printf("Creating order queue...\n");
 	orderQueue = newQueue();
+	sleep(1.5);
 
 	printf("Fetching files...\n");
 	files = loadFiles(dirname, orderQueue, files);
 	printf("%d files were fetched!\n", files);
-	
+	sleep(1.5);
+
 	if(files == 0){
 		printf("No files to process\n");
 		exit(EXIT_SUCCESS);
-	} else {
-		
-		node_o * current = orderQueue->first;
-		
-		while(current != NULL){
-			printf("processed?: %s - ", current->order.processed? "true" : "false");
-			printf("filename: %s\n", current->order.filename);
-			current = current->next;
-		}
-		
-		printf("Queue size: %d\n", orderQueue->size);
 	}
 
 	printf("Creating %d slaves..\n", SLAVES_NUM);
 	slaves = createSlaves();
+	sleep(1.5);
 
+	/* Mi idea seria meter todo este choclo en una funcion pero hasta no ver de cambiar lo de 
+	char ** de la shared memory mejor lo dejo aca */
 	int assignedOrder = 0;
 	int finishOrder = 0;
 	int queueSize = orderQueue->size;
@@ -156,11 +122,8 @@ void start(const char *dirname){
 						hashes[pointer] = malloc(100 * sizeof(char));
 						strcpy(hashes[pointer], buff); 
 						modifySemaphore(-1,id_sem);
-						//puts("Entro el padre, el hijo espera"); -->Lo usamos para debuggear el semaforo
-						//while(1); -->Lo usamos para debuggear el semaforo
 						strcat(shm, buff);
-						strcat(shm, "|"); // -->La idea es generar en memoria compartida un string largo que sea hash1|hash2|hash3 y asi..
-						//puts("**El padre sale"); -->Lo usamos para debuggear el semaforo
+						strcat(shm, "|"); 
 						modifySemaphore(1,id_sem);
 						curr = buff;
 						pointer++;
@@ -174,56 +137,68 @@ void start(const char *dirname){
 		
 	}
 
-	modifySemaphore(1,id_sem);
-	strcat(shm,"?"); //-->Caracter donde finaliza mi string largo compartido para reconocer q tengo que salir del while(1) en view..
-	modifySemaphore(-1,id_sem);
-
 	free(buff);
 
-	// Chequeo que se me armo en el string largo de forma correcta...
-	
-	/*char * s;
-	printf("Shared memory: ");
-	
-	for(s = shm; *s != '?'; s++)
-	printf("%c",*s);
-	
-	printf("\n");
-	*/
-	
+	modifySemaphore(1,id_sem);
+	strcat(shm,"?"); //-->Caracter donde finaliza mi string largo compartido para reconocer q tengo que salir del while(1) en view.. CAMBIAR
+	modifySemaphore(-1,id_sem);
+	/* Aca termina el choclo */
+
 
 	printf("Stopping slaves from working..\n");
 	stopSlaves(slaves);
-	
+	sleep(1.5);
 
-	file = fopen("my_hashes.txt", "w+");
-	if (file==NULL) {
-		perror("[ERROR!] File error!\n");
-		exit(1);
-	}
+	writeResultIntoFile(queueSize, hashes);
 
-	int j = 0;
-	for(j = 0; j < queueSize ; j++){
-		//printf("From application: %s\n" , hashes[j]);
-		fputs(hashes[j],file);
-		fputs("\n",file);
-		
-	}
-
-	int pid, status;
-	while ((pid=waitpid(-1,&status,0)) != -1) {
-        printf("Process %d finished\n",pid);
-    }
-
-    shmdt(shm);
-	shmctl(id_shmem,  IPC_RMID, 0);
-	semctl(id_sem, 0, IPC_RMID); // Remove the semaphore
-	
-    fclose(file);
-    printf("Finishing application process...\n");
+    detachAndRemoveSharedMem(id_shmem, shm);
+    removeSemaphore(id_sem);
     
 }
 
+key_t generateKey(int num){
+	key_t key = ftok("/home", num);
+	
+	if (key == -1) {
+		perror(ANSI_RED"[ERROR!] " ANSI_RESET "Couldn't generate the key!");
+		exit(1);
+	}
+
+	return key;
+}
+
+char * createSharedMemorySegment(int * id_shmem, key_t key){
+	char * shm;
+
+	*id_shmem = shmget(key, MYSIZE, 0777 | IPC_CREAT);
+	if(*id_shmem < 0){
+		perror(ANSI_RED "[ERROR!] " ANSI_RESET "Couldn't create shared memory!");
+		exit(1);
+	}
+	
+	shm = (char*) shmat(*id_shmem, 0, 0);
+	if(shm == (char*) -1){
+		perror(ANSI_RED "[ERROR!] " ANSI_RESET "Couldn't take the shared segment!\n");
+		exit(1);
+	}
+
+	return shm;
+}
+
+void createSemaphore(int * id_sem, key_t key){
+	*id_sem = semget (key, 1, 0666 | IPC_CREAT);
+	if (*id_sem == -1){
+		perror(ANSI_RED "[ERROR!] " ANSI_RESET "Couldn't create semaphore!\n");
+		exit (1);
+	}
+}
+
+void changePermissions(int id_sem){
+	union semun arg;
+
+	arg.val = 0;
+	semctl(id_sem, 0, SETVAL, &arg);
+}
 
 int loadFiles(const char *dirname, queue_o queue, int files){
 	DIR *dir;
@@ -239,7 +214,7 @@ int loadFiles(const char *dirname, queue_o queue, int files){
 				strcat(strcat(strcpy(current, dirname), SEPARATOR), dp->d_name);
 				
 				if(strlen(current) > MAX_FILENAME){
-					 perror("[ERROR!] One file exceeded our filename limit!\n");
+					 perror(ANSI_RED "[ERROR!] " ANSI_RESET "One file exceeded our filename limit!\n");
 	    			_exit(1);
 				}
 
@@ -268,7 +243,7 @@ slaves_o * createSlaves(){
 	slaves = (slaves_o *)calloc(SLAVES_NUM, sizeof(slaves_o));
 
 	if(slaves == NULL) {
-	    perror("[ERROR!] Couldn't allocate space for slaves!\n");
+	    perror(ANSI_RED "[ERROR!] " ANSI_RESET "Couldn't allocate space for slaves!\n");
 	    wait(NULL);
 	    _exit(1);
   	}
@@ -280,20 +255,20 @@ slaves_o * createSlaves(){
 		slaves[i].isWorking = false;
 
 	  	if(pipe(slaves[i].pipeFatherToChild) == -1){
-	        printf("[ERROR!] Couldn't open the pipe Father->Child!\n");
+	        printf(ANSI_RED "[ERROR!] " ANSI_RESET "Couldn't open the pipe Father->Child!\n");
 	    }
 
 	    if(pipe(slaves[i].pipeChildToFather) == -1){
-	        printf("[ERROR!] Couldn't open the pipe Child->Father!\n");
+	        printf(ANSI_RED "[ERROR!] " ANSI_RESET "Couldn't open the pipe Child->Father!\n");
 	    }
-	   	fcntl(slaves[i].pipeChildToFather[0], F_SETFL,  O_NONBLOCK);
 
 		//Start slave
 		pid = fork();
 		int flags = fcntl(slaves[i].pipeChildToFather[0], F_GETFL, 0);
+		
 		switch(pid){
 			case -1:
-				perror("[ERROR!] Couldn't fork correctly!\n");
+				perror(ANSI_RED "[ERROR!] " ANSI_RESET "Couldn't fork correctly!\n");
 				wait(NULL);
 				exit(EXIT_FAILURE);
 				break;
@@ -301,11 +276,11 @@ slaves_o * createSlaves(){
 				//If i'm the child, execute ./slave
 				dup2(slaves[i].pipeFatherToChild[0], STDIN_FILENO);
 				if(dup2(slaves[i].pipeChildToFather[1], STDOUT_FILENO) == -1)
-					perror("[ERROR!] Couldn't redirect stdout of child\n");
+					perror(ANSI_RED "[ERROR!] " ANSI_RESET "Couldn't redirect stdout of child\n");
 		 		close(slaves[i].pipeFatherToChild[1]);
 		 		close(slaves[i].pipeChildToFather[0]);
 				execlp(SLAVE_EXEC, SLAVE_EXEC, NULL);
-				perror("[ERROR!] Couldn't execute worker in forked child!\n");
+				perror(ANSI_RED "[ERROR!] " ANSI_RESET "Couldn't execute worker in forked child!\n");
 				wait(NULL);
 				break;
 			default:
@@ -318,7 +293,6 @@ slaves_o * createSlaves(){
 	}
 
 	return slaves;
-	
 }
 
 queue_o assignWork(slaves_o * slaves, queue_o orderQueue, int queueSize, int * assignedOrder){
@@ -335,17 +309,16 @@ queue_o assignWork(slaves_o * slaves, queue_o orderQueue, int queueSize, int * a
 					slaves[i].isWorking = true;
 					(*assignedOrder)++;
 				} else {
-					printf("[ERROR!] Trying to process a file that has already been processed!\n");
+					printf(ANSI_RED "[ERROR!] " ANSI_RESET "Trying to process a file that has already been processed!\n");
 					break; //SACAR
 				}
 
-			} write(slaves[i].pipeFatherToChild[1], "", 1);
+			} write(slaves[i].pipeFatherToChild[1],"", 1);
 		}
 	}
 
 	return orderQueue;
 }
-
 
 
 void stopSlaves(slaves_o * slaves){
@@ -355,22 +328,68 @@ void stopSlaves(slaves_o * slaves){
 	}
 }
 
-void modifySemaphore(int x, int id_sem){
-	struct sembuf operation;
-	operation.sem_num = 0;
-	operation.sem_op = x;
-	operation.sem_flg = 0;
-	semop(id_sem, &operation, 1); // semop() performs operations on selected semaphores
-} // -->Despues sacar esto de aca!!
+void menu(){
+	printf(ANSI_BLUE"--- MENU ---\n"ANSI_RESET);
+	printf("Please, choose one option: \n");
+   	printf("1 - Show instructions to start view process\n");
+   	printf("2 - Continue to application process normally. Remember: <pid>=%d\n", getpid());
+   	
+   	char input = getOption();
 
-/* int semop(int semid, struct sembuf *sops, unsigned nsops);
+   	if(input == '1')
+   		manual();
+}
 
-Each of the nsops elements in the array pointed to by sops specifies an operation to be performed on a single semaphore. 
-The elements of this structure are of type struct sembuf, containing the following members:
-unsigned short sem_num;   semaphore number 
-short          sem_op;   semaphore operation 
-short          sem_flg;  operation flags 
+char getOption(){
+	char input, enter;
+	
+	printf("Option selected: ");
+   	input = getchar();
+   	enter = getchar();
 
-If sem_op is a positive integer, the operation adds this value to the semaphore value (semval).
+   	if(enter != '\n' || (input != '1' && input != '2')){
+   		printf(ANSI_RED "[ERROR!] " ANSI_RESET "Please choose between options given above\n");
+   		cleanBuffer();
+   		getOption();
+   	}
+   		
+   	return input;			
+}
 
-*/
+void cleanBuffer(){
+	while(getchar() != '\n');
+}
+
+void manual(){
+	printf(ANSI_BLUE"--- MANUAL ---\n"ANSI_RESET);
+   	printf("1 - Open another terminal window where your proyect is\n");
+   	printf("2 - Enter the next command: " ANSI_GREEN "./view <pid>." ANSI_RESET " Remember: <pid>=%d\n", getpid());
+   	printf("3 - Then continue application by following the next step\n");
+   	sleep(2);
+}
+
+void detachAndRemoveSharedMem(int id_shmem, char * shm){
+	shmdt(shm);
+	shmctl(id_shmem, IPC_RMID, 0);
+}
+
+void removeSemaphore(int id_sem){
+	semctl(id_sem, 0, IPC_RMID); 
+}
+
+void writeResultIntoFile(int queueSize, char ** hashes){
+	int i = 0;
+	FILE * file = fopen("my_hashes.txt", "w+");
+	
+	if (file == NULL) {
+		perror("[ERROR!] File error!\n");
+		exit(1);
+	}
+
+	for(i = 0; i < queueSize ; i++){
+		fputs(hashes[i],file);
+		fputs("\n",file);
+	}
+
+	fclose(file);
+}

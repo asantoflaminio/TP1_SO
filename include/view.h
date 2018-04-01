@@ -7,6 +7,8 @@
 #include <errno.h>
 #include <stdio.h>
 #include <stdlib.h>
-#define MYSIZE 1000 //no se por ahora le puse este size  tmbn definido en applciation.h
 
-void modifySemaphore(int x,int idSem);
+
+#define MYSIZE 1000 
+
+

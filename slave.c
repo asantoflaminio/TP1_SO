@@ -1,8 +1,3 @@
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <unistd.h>
-#include <sys/wait.h>
 #include "include/slave.h"
 
 int 
@@ -33,7 +28,6 @@ main(int args, char * argv[]){
 				break;
 
 			processOrderQueue(orderQueue, resultHashes);
-
   	}
 
 	return 0;
@@ -50,7 +44,6 @@ void processOrderQueue(queue_o orderQueue, char * resultHashes){
 
   	sendResults(resultHashes);
 }
-
 
 void processOneOrder(char * filename, char * resultHashes){
   	char md5[MD5_LENGTH], temporal[MSG_LENGTH];
@@ -73,7 +66,7 @@ void processOneOrder(char * filename, char * resultHashes){
 			break;
 	}
 
-	sprintf(temporal,"Hash MD5 of %s: %s\n",filename, md5);
+	sprintf(temporal,"<%s>: <%s>\n",filename, md5);
 	strcat(resultHashes,temporal);
 }
 
@@ -82,15 +75,13 @@ void calculateMD5Hashes(int * pipefd, char * filename){
     close(pipefd[0]);
 	execlp(MD5, MD5 ,filename, NULL);
 	close(pipefd[1]);
-	
 }
 
 void readResults(int * pipefd, char * md5){
 	read(pipefd[0], md5, MD5_LENGTH);
     wait(NULL); 
-    md5[MD5_LENGTH - 1] = '\0';
+    md5[MD5_LENGTH - 1] = NUL;
 }
-
 
 void sendResults(char * resultHashes){
 	write(STDOUT_FILENO,resultHashes,strlen(resultHashes));

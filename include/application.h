@@ -24,7 +24,31 @@ through the command line was syntactically correct. */
 void start(const char *dirname);
 
 slaves_o * createSlaves();
+
 queue_o assignWork(slaves_o * slaves, queue_o orderQueue, int queueSize, int * assignedOrder);
+
 void stopSlaves(slaves_o * slaves);
-void modifySemaphore(int x, int id_sem); // -->Despues sacar esto de aca!!
+
+void menu();
+
+void manual();
+
+char getOption();
+
+void cleanBuffer();
+
+void detachAndRemoveSharedMem(int id_shmem, char * shm); // --> La idea es sacar esto de aca y hacer un .c propio para shared mem
+
+void removeSemaphore(int id_sem); // --> La idea es sacar esto de aca y hacer un .c propio para semaforos
+
+key_t generateKey(int num);
+
+char * createSharedMemorySegment(int * id_shmem, key_t key); // --> La idea es sacar esto de aca y hacer un .c propio para shared mem
+
+void createSemaphore(int * id_sem, key_t key); // --> La idea es sacar esto de aca y hacer un .c propio para semaforos
+
+void writeResultIntoFile(int queueSize, char ** hashes);
+
+void changePermissions(int id_sem); // --> La idea es sacar esto de aca y hacer un .c propio para semaforos
+
 #endif
