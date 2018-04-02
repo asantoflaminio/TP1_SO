@@ -152,6 +152,12 @@ void start(const char *dirname){
 
     detachAndRemoveSharedMem(id_shmem, shm);
     removeSemaphore(id_sem);
+    for(int j = 0; j < files; j++){
+		free(hashes[j]);
+	}
+	free(hashes);
+	free(slaves);
+	free(curr);
     
 }
 
@@ -226,6 +232,7 @@ int loadFiles(const char *dirname, queue_o queue, int files){
 					enQueue(queue, order);
 					files++;
 				}
+				free(current);
 			}
 		}
 	}
