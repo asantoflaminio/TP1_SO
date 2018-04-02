@@ -5,7 +5,7 @@
 #include "include/types.h"
 
 queue_o newQueue(){ 
-	queue_o q = (queue_o) malloc(sizeof(queue_o));
+	queue_o q = malloc(sizeof(struct orderQueue));
 	q->first = q->last = NULL;
 	q->size = 0;
 	return q;
@@ -27,14 +27,12 @@ void enQueue(queue_o q, order_o o){
 }
 
 node_o * deQueue(queue_o q){
-    if (q->first == NULL)
+    if (q->first == NULL){
         return NULL;
+    }
 
     node_o * temp = q->first;
     q->first = q->first->next;
-    
-    if (q->first == NULL)
-        q->last = NULL;
 
     q->size--;
 
@@ -50,15 +48,4 @@ boolean isEmpty(queue_o q){
 
 unsigned int size(queue_o q){
 	return q->size;
-}
-
-void freeQueue(queue_o q){
-	node_o * current;
-	current = q->first;
-	while(current != NULL){
-		free(current);
-		current = current->next;
-
-	}
-	//free(q);
 }

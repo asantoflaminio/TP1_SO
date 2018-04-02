@@ -31,16 +31,16 @@ main(int argc, char* argv[]){
 	if((strcmp(argv[1], "test") == 0))
 		startTest();
 	else{
-	printf("Starting...\n");
-	sleep(1.5);
-	start(argv[2]);
+		printf("Starting...\n");
+		sleep(1.5);
+		start(argv[2]);
 
 
-	while ((pid=waitpid(-1,&status,0)) != -1) {
-        printf("Process %d finished\n",pid);
-    }
+		while ((pid=waitpid(-1,&status,0)) != -1) {
+	        printf("Process %d finished\n",pid);
+	    }
 
-    printf("Finishing application process...\n");
+	    printf("Finishing application process...\n");
     }
 			
 	return 0;
@@ -137,7 +137,7 @@ void start(const char *dirname){
 	}
 
 	free(buff);
-
+	
 	modifySemaphore(1,id_sem);
 	strcat(shm,"?"); //-->Caracter donde finaliza mi string largo compartido para reconocer q tengo que salir del while(1) en view.. CAMBIAR
 	modifySemaphore(-1,id_sem);
@@ -149,16 +149,20 @@ void start(const char *dirname){
 	sleep(1.5);
 
 	writeResultIntoFile(queueSize, hashes);
-
+	
     detachAndRemoveSharedMem(id_shmem, shm);
+   
     removeSemaphore(id_sem);
-    for(int j = 0; j < files; j++){
+    
+    int j;
+    for(j = 0; j < files; j++){
 		free(hashes[j]);
 	}
+
 	free(hashes);
+
 	free(slaves);
-	free(curr);
-	freeQueue(orderQueue);
+	free(orderQueue);
     
 }
 
@@ -209,23 +213,26 @@ void changePermissions(int id_sem){
 int loadFiles(const char *dirname, queue_o queue, int files){
 	DIR *dir;
 	struct dirent *dp;
-
+	char * current;
+	int length;
 	dir = opendir(dirname);
 	
-	if((dir = opendir(dirname)) != NULL){
+	if( dir != NULL){
 		while((dp = readdir(dir)) != NULL){
 			if((strcmp(dp->d_name,".")!=0) && (strcmp(dp->d_name,"..")!=0)){
-
-				char * current = malloc(strlen(dirname) + strlen(dp->d_name) + strlen(SEPARATOR) + 1);
-				strcat(strcat(strcpy(current, dirname), SEPARATOR), dp->d_name);
+				int length = strlen(dirname) + strlen(dp->d_name) + strlen(SEPARATOR) + 1;
 				
-				if(strlen(current) > MAX_FILENAME){
+				if(length > MAX_FILENAME){
 					 perror(ANSI_RED "[ERROR!] " ANSI_RESET "One file exceeded our filename limit!\n");
 	    			_exit(1);
 				}
 
+				current = malloc(length);
+				strcat(strcat(strcpy(current, dirname), SEPARATOR), dp->d_name);
+
 				if(dp->d_type == DT_DIR){
 					files = loadFiles(current, queue, files);
+					free(current);
 				} else {
 					order_o order;
 					order.filename = current;
@@ -234,7 +241,7 @@ int loadFiles(const char *dirname, queue_o queue, int files){
 					files++;
 
 				}
-				//free(current);
+				
 			}
 		}
 	}
@@ -314,6 +321,8 @@ queue_o assignWork(slaves_o * slaves, queue_o orderQueue, int queueSize, int * a
 					write(slaves[i].pipeFatherToChild[1], "|", 1);
 					node_o * temp = deQueue(orderQueue);
 					printf("Sending %s to slave number %d\n", temp->order.filename, i);
+					free(temp->order.filename);
+					free(temp);
 					slaves[i].isWorking = true;
 					(*assignedOrder)++;
 				} else {

@@ -12,7 +12,7 @@ main(int argc, char* argv[]){
 	
 	int id_sem;
 
-	char *shm;
+	char * shm;
 	int done = 0;
 	
 	key = ftok("/home", atoi(argv[1]));
@@ -63,10 +63,12 @@ main(int argc, char* argv[]){
 		
 	}
 
+
 	shmdt(shm);
 	shmctl(id_shmem,  IPC_RMID, 0);
 	
     printf("Finishing view process...\n");
+	
 	return 0;
 
 }

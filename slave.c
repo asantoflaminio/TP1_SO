@@ -4,7 +4,7 @@
 int 
 main(int args, char * argv[]){
 	char msg[MAX_FILENAME], resultHashes[ORDERS_NUM * MSG_LENGTH];
-  	char * filename, * curr = msg;
+  	char * file, * curr = msg;
   	int running = 1;
   	queue_o orderQueue = newQueue();
 
@@ -20,10 +20,10 @@ main(int args, char * argv[]){
 		while((*curr = getchar()) && (*curr != NUL) && (*curr != END_CHARACTER)){
 				if(*curr == VERTICAL_SLASH){
 					*curr = NUL;
-					filename = malloc(strlen(msg) + 1);
-					strcpy(filename, msg);
+					file = malloc(strlen(msg) + 1);
+					strcpy(file, msg);
 					order_o order;
-					order.filename = filename;
+					order.filename = file;
 					order.processed = false;
 					enQueue(orderQueue, order);
 					memset(msg, 0, sizeof(msg));
@@ -39,6 +39,8 @@ main(int args, char * argv[]){
 			processOrderQueue(orderQueue, resultHashes);
   	}
 
+  	free(orderQueue);
+
 	return 0;
 }
 
@@ -49,6 +51,7 @@ void processOrderQueue(queue_o orderQueue, char * resultHashes){
 	for(i = 0; i < sizeQueue; i++){
 			node_o * temp = deQueue(orderQueue);
 			processOneOrder(temp->order.filename,resultHashes);
+			free(temp->order.filename);
   	}
 
   	sendResults(resultHashes);
