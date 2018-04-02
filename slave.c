@@ -9,6 +9,7 @@ main(int args, char * argv[]){
   	queue_o orderQueue = newQueue();
 
   	if(args != 1){
+  		free(orderQueue);
   		if(strcmp(argv[1],"test") == 0)
   			slaveTest();
   		else
@@ -16,6 +17,8 @@ main(int args, char * argv[]){
   		return 0;
   	}
   	
+
+
   	while(running){
 		while((*curr = getchar()) && (*curr != NUL) && (*curr != END_CHARACTER)){
 				if(*curr == VERTICAL_SLASH){
@@ -52,6 +55,7 @@ void processOrderQueue(queue_o orderQueue, char * resultHashes){
 			node_o * temp = deQueue(orderQueue);
 			processOneOrder(temp->order.filename,resultHashes);
 			free(temp->order.filename);
+			free(temp);
   	}
 
   	sendResults(resultHashes);
@@ -144,6 +148,9 @@ void testCalculateHashesOfDirectory(){
 
 	thenHashesWereCalculated(filesToProcess,realQueue);
 
+	free(queue);
+	free(realQueue);
+
 }
 
 
@@ -186,6 +193,8 @@ void thenHashesWereCalculated(int filesToProcess, queue_o realQueue){
 	printf("The real hashes of files are: \n");
 	for(i = 0; i < filesToProcess; i++){
 		node_o * temp = deQueue(realQueue);
+		free(temp->order.filename);
+		free(temp);
 		strcpy(filename,temp->order.filename);
 		switch(fork()){
 			case -1: printf("Failure: Unable tu fork\n");break;
@@ -211,29 +220,34 @@ void communitacionTestFunction(){
 int loadFiles(const char *dirname, queue_o queue, int files){
 	DIR *dir;
 	struct dirent *dp;
-
+	char * current;
+	int length;
 	dir = opendir(dirname);
 	
-	if((dir = opendir(dirname)) != NULL){
+	if(dir != NULL){
 		while((dp = readdir(dir)) != NULL){
 			if((strcmp(dp->d_name,".")!=0) && (strcmp(dp->d_name,"..")!=0)){
 
-				char * current = malloc(strlen(dirname) + strlen(dp->d_name) + strlen(SEPARATOR) + 1);
-				strcat(strcat(strcpy(current, dirname), SEPARATOR), dp->d_name);
+				length = strlen(dirname) + strlen(dp->d_name) + strlen(SEPARATOR) + 1;
 				
-				if(strlen(current) > MAX_FILENAME){
+				if(length > MAX_FILENAME){
 					 perror(ANSI_RED "[ERROR!] " ANSI_RESET "One file exceeded our filename limit!\n");
 	    			_exit(1);
 				}
 
+				current = malloc(length);
+				strcat(strcat(strcpy(current, dirname), SEPARATOR), dp->d_name);
+
 				if(dp->d_type == DT_DIR){
 					files = loadFiles(current, queue, files);
+					free(current);
 				} else {
 					order_o order;
 					order.filename = current;
 					order.processed = false;
 					enQueue(queue, order);
 					files++;
+
 				}
 			}
 		}

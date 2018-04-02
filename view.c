@@ -15,6 +15,12 @@ main(int argc, char* argv[]){
 	char * shm;
 	int done = 0;
 	
+	if(argc != 2){
+		printf("The arguments were wrong. Correct format: hash <directory>\n");
+		return -1;
+	}
+
+
 	key = ftok("/home", atoi(argv[1]));
 	if(key == -1){
 		perror("[ERROR!] Couldn't generate the key!\n");
@@ -67,7 +73,7 @@ main(int argc, char* argv[]){
 	shmdt(shm);
 	shmctl(id_shmem,  IPC_RMID, 0);
 	
-    printf("Finishing view process...\n");
+    	printf("Finishing view process...\n");
 	
 	return 0;
 

@@ -220,7 +220,7 @@ int loadFiles(const char *dirname, queue_o queue, int files){
 	if( dir != NULL){
 		while((dp = readdir(dir)) != NULL){
 			if((strcmp(dp->d_name,".")!=0) && (strcmp(dp->d_name,"..")!=0)){
-				int length = strlen(dirname) + strlen(dp->d_name) + strlen(SEPARATOR) + 1;
+				length = strlen(dirname) + strlen(dp->d_name) + strlen(SEPARATOR) + 1;
 				
 				if(length > MAX_FILENAME){
 					 perror(ANSI_RED "[ERROR!] " ANSI_RESET "One file exceeded our filename limit!\n");
