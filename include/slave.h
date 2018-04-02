@@ -6,6 +6,7 @@
 #include <string.h>
 #include <unistd.h>
 #include <sys/wait.h>
+#include <dirent.h>
 #include "order.h"
 #include "queue.h"
 
@@ -25,6 +26,16 @@
 #define ORDERS_NUM 		2
 /* Represents the separation between two different orders. */
 #define VERTICAL_SLASH '|'
+/* Represents the max length path of a file */
+#define MAX_LENGHT_FILES 60
+/* Represents the max number of files to process */
+#define MAX_FILES_TO_PROCESS 3
+/* Represents the max number of characters of all the hashes of files processed */
+#define MAX_LENGHT_HASHES 2024
+/* Represents the max number of characters per hash of a single file */
+#define MAX_LENGHT_HASH 50
+/* Represents the option selected to quit menu */
+#define EXIT 3
 
 /* Struct for each slave that contains two pipes to communicate bidireccionaly with 
 the application and a boolean value that indicates if it's currently processing something. */
@@ -51,5 +62,31 @@ void readResults(int * pipefd, char * md5);
 
 /* Sends the M5D hashes to the application process. */
 void sendResults(char * resultHashes);
+
+/*Test functions*/
+
+/*Test function for bidirectional communication*/
+void communitacionTestFunction();
+
+/*Starts the test functions for slave.c*/
+void slaveTest();
+
+/*Test for an amount of files*/
+void testCalculateHashesOfDirectory();
+
+/*Test for a single hash file*/
+void testCalculateHashOfFile();
+
+/*Takes the path of a file*/
+void givenFileToProcess(char *);
+
+/*Test the path of an amount of files*/
+void givenDirectoryToProcess(char *, queue_o, queue_o, int *);
+
+void whenProcessingFile(char *, char *);
+void whenProcessingFiles(queue_o, char *);
+
+void thenHashWasCalculated(const char *, char *);
+void thenHashesWereCalculated(int,queue_o);
 
 #endif
