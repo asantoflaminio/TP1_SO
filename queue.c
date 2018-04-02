@@ -51,3 +51,14 @@ boolean isEmpty(queue_o q){
 unsigned int size(queue_o q){
 	return q->size;
 }
+
+void freeQueue(queue_o q){
+	node_o * current;
+	current = q->first;
+	while(current != NULL){
+		free(current);
+		current = current->next;
+
+	}
+	//free(q);
+}

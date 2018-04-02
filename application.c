@@ -158,6 +158,7 @@ void start(const char *dirname){
 	free(hashes);
 	free(slaves);
 	free(curr);
+	freeQueue(orderQueue);
     
 }
 
@@ -231,8 +232,9 @@ int loadFiles(const char *dirname, queue_o queue, int files){
 					order.processed = false;
 					enQueue(queue, order);
 					files++;
+
 				}
-				free(current);
+				//free(current);
 			}
 		}
 	}

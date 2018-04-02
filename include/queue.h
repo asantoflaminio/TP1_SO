@@ -34,4 +34,7 @@ boolean isEmpty(queue_o q);
 /* Returns the size of the queue. */
 unsigned int size(queue_o q);
 
+/*Frees de queue*/
+void freeQueue(queue_o q);
+
 #endif
