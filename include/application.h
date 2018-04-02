@@ -11,8 +11,15 @@
 #define VERTICAL_SLASH '|'
 #define SLAVE_EXEC "./slave"
 #define VIEW_EXEC "./view"
+#define MAX_LENGTH 50
+#define DIRNAMETEST "test"
 /* Character send by application to end slave process */
 #define STOP_SLAVES "+"
+#define ANSI_RED     "\x1b[31m"
+#define ANSI_GREEN    "\x1b[32m"
+#define ANSI_BLUE    "\x1b[34m"
+#define ANSI_RESET   "\x1b[0m"
+
 
 
 /* Searches all available files from dirname and enqueues 
@@ -50,5 +57,23 @@ void createSemaphore(int * id_sem, key_t key); // --> La idea es sacar esto de a
 void writeResultIntoFile(int queueSize, char ** hashes);
 
 void changePermissions(int id_sem); // --> La idea es sacar esto de aca y hacer un .c propio para semaforos
+
+/*Test cases functions*/
+
+void startTest();
+
+void testBidirectionalComunication();
+
+void testRedistributionOfOrders();
+
+void givenString(char * message);
+
+void whenSlaveIsExecuted(int * pipeFatherToChild, int * pipeChildToFather);
+
+void whenStringIsSentToSlave(char * message, int * pipeFatherToChild);
+
+void whenStringIsReturned(char * messageReturned, int * pipeChildToFather);
+
+void thenStringIsReturned(const char * message, const char * messageReturned);
 
 #endif
