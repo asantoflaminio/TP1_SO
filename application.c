@@ -18,21 +18,19 @@
 #include "include/types.h"
 #include "include/mysemaphore.h"
 
-#define ANSI_RED     "\x1b[31m"
-#define ANSI_GREEN    "\x1b[32m"
-#define ANSI_BLUE    "\x1b[34m"
-#define ANSI_RESET   "\x1b[0m"
-
 
 int 
 main(int argc, char* argv[]){
 	int pid, status;
 
-	if (argc != 3 || (strcmp(argv[1], "hash") != 0)) {
+	if ( ((argc != 3 || ((strcmp(argv[1], "hash") != 0)))  && ((argc != 2 || ((strcmp(argv[1], "test") != 0)))) )) {
 		printf("The arguments were wrong. Correct format: " ANSI_GREEN "hash <directory>\n" ANSI_RESET);
 		return -1;
 	}
-	
+
+	if((strcmp(argv[1], "test") == 0))
+		startTest();
+	else{
 	printf("Starting...\n");
 	sleep(1.5);
 	start(argv[2]);
@@ -43,6 +41,7 @@ main(int argc, char* argv[]){
     }
 
     printf("Finishing application process...\n");
+    }
 			
 	return 0;
 }
