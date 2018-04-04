@@ -52,7 +52,6 @@ main(int argc, char* argv[]){
 	while(!done){
 		modifySemaphore(-1,id_sem);
 		
-		
 		if(*s == '?')
 			done = 1;
 		else if(*s != '\0'){
@@ -63,9 +62,8 @@ main(int argc, char* argv[]){
 			puts("");
 			s++;
 		}
-
 		
-		modifySemaphore(1,id_sem); 
+		modifySemaphore(1,id_sem);
 		
 	}
 

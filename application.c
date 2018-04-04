@@ -89,7 +89,7 @@ void start(const char *dirname){
 		exit(EXIT_SUCCESS);
 	}
 
-	printf("Creating %d slaves..\n", SLAVES_NUM);
+	printf("Creating %d slaves...\n", SLAVES_NUM);
 	slaves = createSlaves();
 	sleep(1.5);
 
@@ -144,7 +144,7 @@ void start(const char *dirname){
 	/* Aca termina el choclo */
 
 
-	printf("Stopping slaves from working..\n");
+	printf("Stopping slaves from working...\n");
 	stopSlaves(slaves);
 	sleep(1.5);
 

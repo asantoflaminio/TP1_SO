@@ -9,6 +9,6 @@
 #include <stdlib.h>
 
 
-#define MYSIZE 1000 
+#define MYSIZE 30000
 
 

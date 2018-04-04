@@ -30,6 +30,17 @@ void testRedistributionOfOrders(){
 	orderQueue = newQueue();
 	files = loadFiles(DIRNAMETEST, orderQueue, files);
 	slaves = createSlaves();
+	
+	free(slaves);
+	int i = 0;
+	for(i; i < files; i++){
+		node_o * temp = deQueue(orderQueue);
+				
+		free(temp->order.filename);
+		free(temp);
+	}
+
+	free(orderQueue);
 }
 
 void givenString(char * message){

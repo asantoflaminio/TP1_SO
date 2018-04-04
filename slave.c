@@ -13,7 +13,7 @@ main(int args, char * argv[]){
   		if(strcmp(argv[1],"test") == 0)
   			slaveTest();
   		else
-  			communitacionTestFunction();
+  			communicationTestFunction();
   		return 0;
   	}
   	
@@ -205,7 +205,7 @@ void thenHashesWereCalculated(int filesToProcess, queue_o realQueue){
 	printf("\nIf all hashes are equal, then the test is succesful\n\n");
 }
 
-void communitacionTestFunction(){
+void communicationTestFunction(){
 	char message[MAX_FILENAME];
 	memset(message, 0, sizeof(message));
 	char * current = message;

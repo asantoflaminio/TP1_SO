@@ -23,7 +23,7 @@
 /* This character is a control character with the value zero. */
 #define NUL 			'\0'
 /* Number of orders the application will send per slave. */
-#define ORDERS_NUM 		2
+#define ORDERS_NUM 	2
 /* Represents the separation between two different orders. */
 #define VERTICAL_SLASH '|'
 /* Represents the max length path of a file */
@@ -33,7 +33,7 @@
 /* Represents the max number of characters of all the hashes of files processed */
 #define MAX_LENGHT_HASHES 2024
 /* Represents the max number of characters per hash of a single file */
-#define MAX_LENGHT_HASH 50
+#define MAX_LENGHT_HASH 100
 /* Represents the option selected to quit menu */
 #define EXIT 3
 
@@ -66,7 +66,7 @@ void sendResults(char * resultHashes);
 /*Test functions*/
 
 /*Test function for bidirectional communication*/
-void communitacionTestFunction();
+void communicationTestFunction();
 
 /*Starts the test functions for slave.c*/
 void slaveTest();
