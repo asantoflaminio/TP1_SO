@@ -98,7 +98,7 @@ void readResults(int * pipefd, char * md5){
 
 void sendResults(char * resultHashes){
 	write(STDOUT_FILENO,resultHashes,strlen(resultHashes));
-  	memset(resultHashes, 0, sizeof(resultHashes));
+  	memset(resultHashes, 0, sizeof(strlen(resultHashes)));
 }
 
 /* ---------------------------------------- TEST CASES ---------------------------------------- */
