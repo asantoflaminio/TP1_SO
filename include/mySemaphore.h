@@ -5,6 +5,7 @@
 #include <sys/ipc.h>
 #include <sys/sem.h>
 #include <stdlib.h>
+#include <stdio.h>
 
 #include "styles.h"
 
