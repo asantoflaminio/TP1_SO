@@ -5,18 +5,12 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
-#include <sys/wait.h>
-#include <sys/types.h>
 #include <sys/ipc.h>
 #include <sys/shm.h>
 #include <sys/wait.h>
 #include <sys/sem.h>
 #include "include/application.h"
-#include "include/order.h"
-#include "include/queue.h"
-#include "include/slave.h"
-#include "include/types.h"
-#include "include/mysemaphore.h"
+#include "include/mySemaphore.h"
 
 
 int 
@@ -48,13 +42,14 @@ main(int argc, char* argv[]){
 
 void start(const char *dirname){
 	int files = 0;
+	int queueSize;
 	queue_o orderQueue;
 	slaves_o * slaves;
 	
 	key_t key;
 	
 	int id_shmem;
-	char *shm; 
+	char * shm; 
 	
 	int id_sem;
 
@@ -89,69 +84,32 @@ void start(const char *dirname){
 		exit(EXIT_SUCCESS);
 	}
 
+	queueSize = orderQueue->size;
+
 	printf("Creating %d slaves...\n", SLAVES_NUM);
 	slaves = createSlaves();
 	sleep(1.5);
 
-	/* Mi idea seria meter todo este choclo en una funcion pero hasta no ver de cambiar lo de 
-	char ** de la shared memory mejor lo dejo aca */
-	int assignedOrder = 0;
-	int finishOrder = 0;
-	int queueSize = orderQueue->size;
-	int pointer = 0;
-
 	char **hashes = (char **)malloc(files * sizeof (char *));
-	char * buff = malloc(100 * sizeof(char));
-	char * curr = buff;
-	int i;
 	
-
-	while(finishOrder != queueSize){ 
-
-		if(assignedOrder != queueSize)
-			orderQueue = assignWork(slaves, orderQueue, queueSize, &assignedOrder); 	
-
-		for(i = 0; i < SLAVES_NUM; i++){
-			if(slaves[i].isWorking){
-				while(read(slaves[i].pipeChildToFather[0], curr, 1) == 1){
-					if(*curr == '\n'){
-						*curr = '\0';
-						slaves[i].isWorking = false;
-						finishOrder++;
-						hashes[pointer] = malloc(100 * sizeof(char));
-						strcpy(hashes[pointer], buff); 
-						modifySemaphore(-1,id_sem);
-						strcat(shm, buff);
-						strcat(shm, "|"); 
-						modifySemaphore(1,id_sem);
-						curr = buff;
-						pointer++;
-					}
-					else{
-						curr++;
-					}
-				}
-			}
-		}
-		
-	}
-
-	free(buff);
+	hashes = startProcessing(queueSize, orderQueue, slaves, hashes, shm, id_sem);
 	
 	modifySemaphore(1,id_sem);
-	strcat(shm,"?"); //-->Caracter donde finaliza mi string largo compartido para reconocer q tengo que salir del while(1) en view.. CAMBIAR
+	strcat(shm,"?"); 
 	modifySemaphore(-1,id_sem);
-	/* Aca termina el choclo */
 
 
 	printf("Stopping slaves from working...\n");
 	stopSlaves(slaves);
 	sleep(1.5);
 
+	printf("Writing results into my_hashes.txt...\n");
 	writeResultIntoFile(queueSize, hashes);
 	
+	printf("Detaching and removing a shared memory segment...\n");
     detachAndRemoveSharedMem(id_shmem, shm);
    
+   	printf("Removing semaphore...\n");
     removeSemaphore(id_sem);
     
     int j;
@@ -160,10 +118,10 @@ void start(const char *dirname){
 	}
 
 	free(hashes);
-
+	
 	free(slaves);
+	
 	free(orderQueue);
-    
 }
 
 key_t generateKey(int num){
@@ -177,38 +135,6 @@ key_t generateKey(int num){
 	return key;
 }
 
-char * createSharedMemorySegment(int * id_shmem, key_t key){
-	char * shm;
-
-	*id_shmem = shmget(key, MYSIZE, 0777 | IPC_CREAT);
-	if(*id_shmem < 0){
-		perror(ANSI_RED "[ERROR!] " ANSI_RESET "Couldn't create shared memory!");
-		exit(1);
-	}
-	
-	shm = (char*) shmat(*id_shmem, 0, 0);
-	if(shm == (char*) -1){
-		perror(ANSI_RED "[ERROR!] " ANSI_RESET "Couldn't take the shared segment!\n");
-		exit(1);
-	}
-
-	return shm;
-}
-
-void createSemaphore(int * id_sem, key_t key){
-	*id_sem = semget (key, 1, 0666 | IPC_CREAT);
-	if (*id_sem == -1){
-		perror(ANSI_RED "[ERROR!] " ANSI_RESET "Couldn't create semaphore!\n");
-		exit (1);
-	}
-}
-
-void changePermissions(int id_sem){
-	union semun arg;
-
-	arg.val = 0;
-	semctl(id_sem, 0, SETVAL, &arg);
-}
 
 int loadFiles(const char *dirname, queue_o queue, int files){
 	DIR *dir;
@@ -277,7 +203,6 @@ slaves_o * createSlaves(){
 	        printf(ANSI_RED "[ERROR!] " ANSI_RESET "Couldn't open the pipe Child->Father!\n");
 	    }
 
-		//Start slave
 		pid = fork();
 		int flags = fcntl(slaves[i].pipeChildToFather[0], F_GETFL, 0);
 		
@@ -288,7 +213,6 @@ slaves_o * createSlaves(){
 				exit(EXIT_FAILURE);
 				break;
 			case 0:
-				//If i'm the child, execute ./slave
 				dup2(slaves[i].pipeFatherToChild[0], STDIN_FILENO);
 				if(dup2(slaves[i].pipeChildToFather[1], STDOUT_FILENO) == -1)
 					perror(ANSI_RED "[ERROR!] " ANSI_RESET "Couldn't redirect stdout of child\n");
@@ -299,7 +223,6 @@ slaves_o * createSlaves(){
 				wait(NULL);
 				break;
 			default:
-				//dup2(slaves[i].pipeChildToFather[0], STDIN_FILENO);
 				fcntl(slaves[i].pipeChildToFather[0], F_SETFL, flags | O_NONBLOCK);
 				close(slaves[i].pipeFatherToChild[0]);
 				close(slaves[i].pipeChildToFather[1]);
@@ -308,6 +231,50 @@ slaves_o * createSlaves(){
 	}
 
 	return slaves;
+}
+
+char ** startProcessing(int queueSize, queue_o orderQueue, slaves_o * slaves, char ** hashes, char * shm, int id_sem){
+	int assignedOrder = 0;
+	int finishOrder = 0;
+	int pointer = 0;
+
+	char * buff = malloc(100 * sizeof(char));
+	char * curr = buff;
+	int i;
+	
+
+	while(finishOrder != queueSize){ 
+
+		if(assignedOrder != queueSize)
+			orderQueue = assignWork(slaves, orderQueue, queueSize, &assignedOrder); 	
+
+		for(i = 0; i < SLAVES_NUM; i++){
+			if(slaves[i].isWorking){
+				while(read(slaves[i].pipeChildToFather[0], curr, 1) == 1){
+					if(*curr == '\n'){
+						*curr = '\0';
+						slaves[i].isWorking = false;
+						finishOrder++;
+						hashes[pointer] = malloc(100 * sizeof(char));
+						strcpy(hashes[pointer], buff); 
+						modifySemaphore(-1,id_sem);
+						strcat(shm, buff);
+						strcat(shm, VERTICAL_SLASH); 
+						modifySemaphore(1,id_sem);
+						curr = buff;
+						pointer++;
+					}
+					else{
+						curr++;
+					}
+				}
+			}
+		}
+		
+	}
+
+	free(buff);
+	return hashes;
 }
 
 queue_o assignWork(slaves_o * slaves, queue_o orderQueue, int queueSize, int * assignedOrder){
@@ -327,7 +294,7 @@ queue_o assignWork(slaves_o * slaves, queue_o orderQueue, int queueSize, int * a
 					(*assignedOrder)++;
 				} else {
 					printf(ANSI_RED "[ERROR!] " ANSI_RESET "Trying to process a file that has already been processed!\n");
-					break; //SACAR
+					break; 
 				}
 
 			} write(slaves[i].pipeFatherToChild[1],"", 1);
@@ -383,15 +350,6 @@ void manual(){
    	printf("2 - Enter the next command: " ANSI_GREEN "./view <pid>." ANSI_RESET " Remember: <pid>=%d\n", getpid());
    	printf("3 - Then continue application by following the next step\n");
    	sleep(2);
-}
-
-void detachAndRemoveSharedMem(int id_shmem, char * shm){
-	shmdt(shm);
-	shmctl(id_shmem, IPC_RMID, 0);
-}
-
-void removeSemaphore(int id_sem){
-	semctl(id_sem, 0, IPC_RMID); 
 }
 
 void writeResultIntoFile(int queueSize, char ** hashes){

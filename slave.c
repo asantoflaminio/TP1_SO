@@ -16,12 +16,10 @@ main(int args, char * argv[]){
   			communicationTestFunction();
   		return 0;
   	}
-  	
-
-
+  
   	while(running){
-		while((*curr = getchar()) && (*curr != NUL) && (*curr != END_CHARACTER)){
-				if(*curr == VERTICAL_SLASH){
+		while((*curr = getchar()) && (*curr != NUL) && (*curr != STOP_SLAVES_CHARACTER)){
+				if(*curr == VERTICAL_SLASH_CHARACTER){
 					*curr = NUL;
 					file = malloc(strlen(msg) + 1);
 					strcpy(file, msg);
@@ -36,14 +34,13 @@ main(int args, char * argv[]){
 				}
 			}
 
-			if(*curr == END_CHARACTER) 
+			if(*curr == STOP_SLAVES_CHARACTER) 
 				break;
 
 			processOrderQueue(orderQueue, resultHashes);
   	}
 
   	free(orderQueue);
-
 	return 0;
 }
 
@@ -104,7 +101,7 @@ void sendResults(char * resultHashes){
   	memset(resultHashes, 0, sizeof(resultHashes));
 }
 
-
+/* ---------------------------------------- TEST CASES ---------------------------------------- */
 
 void slaveTest(){
 	int optionSelected;
@@ -115,14 +112,19 @@ void slaveTest(){
 		printf("Option selected: ");
 		scanf("%d", &optionSelected);
 		printf("\n");
+		
 		switch(optionSelected){
-			case 1: testCalculateHashOfFile();break;
-			case 2: testCalculateHashesOfDirectory();break;
-			default: break;
+			case 1: 
+				testCalculateHashOfFile();
+				break;
+			case 2: 
+				testCalculateHashesOfDirectory();
+				break;
+			default: 
+				break;
 		}
-	}while(optionSelected != EXIT);
 
-
+	} while(optionSelected != EXIT);
 }
 
 void testCalculateHashOfFile(){
@@ -143,14 +145,11 @@ void testCalculateHashesOfDirectory(){
 	queue_o realQueue = newQueue();
 
 	givenDirectoryToProcess(directory,queue,realQueue,&filesToProcess);
-
 	whenProcessingFiles(queue, resultHashes);
-
 	thenHashesWereCalculated(filesToProcess,realQueue);
 
 	free(queue);
 	free(realQueue);
-
 }
 
 
@@ -179,29 +178,46 @@ void whenProcessingFiles(queue_o queue, char * resultHashes){
 
 void thenHashWasCalculated(const char * resultHash, char * filename){
 	printf("The hash calculated was : %s", resultHash);
-	switch(fork()){
-		case -1: printf("Failure: Unable tu fork\n");break;
-		case 0: execlp(MD5, MD5 ,filename, NULL);break;
-		default: wait(NULL); printf("If both hashes are equal, then the test is succesful\n\n");break;
-	}
 	
+	switch(fork()){
+		case -1: 
+			printf("Failure: Unable tu fork\n");
+			break;
+		case 0: 
+			execlp(MD5, MD5 ,filename, NULL);
+			break;
+		default: 
+			wait(NULL); 
+			printf("If both hashes are equal, then the test is succesful\n\n");
+			break;
+	}
 }
 
 void thenHashesWereCalculated(int filesToProcess, queue_o realQueue){
 	int i;
 	char filename[MAX_FILENAME];
 	printf("The real hashes of files are: \n");
+	
 	for(i = 0; i < filesToProcess; i++){
 		node_o * temp = deQueue(realQueue);
 		strcpy(filename,temp->order.filename);
+		
 		switch(fork()){
-			case -1: printf("Failure: Unable tu fork\n");break;
-			case 0: execlp(MD5, MD5 ,filename, NULL);break;
-			default: wait(NULL);break;
+			case -1: 
+				printf("Failure: Unable tu fork\n");
+				break;
+			case 0: 
+				execlp(MD5, MD5 ,filename, NULL);
+				break;
+			default: 
+				wait(NULL);
+				break;
 		}
+
 		free(temp->order.filename);
 		free(temp);
 	}
+
 	printf("\nIf all hashes are equal, then the test is succesful\n\n");
 }
 
@@ -209,6 +225,7 @@ void communicationTestFunction(){
 	char message[MAX_FILENAME];
 	memset(message, 0, sizeof(message));
 	char * current = message;
+	
 	while((*current = getchar()) && (*current != NUL)){
 		current++;
 	}
@@ -227,12 +244,11 @@ int loadFiles(const char *dirname, queue_o queue, int files){
 	if(dir != NULL){
 		while((dp = readdir(dir)) != NULL){
 			if((strcmp(dp->d_name,".")!=0) && (strcmp(dp->d_name,"..")!=0)){
-
 				length = strlen(dirname) + strlen(dp->d_name) + strlen(SEPARATOR) + 1;
 				
 				if(length > MAX_FILENAME){
-					 perror(ANSI_RED "[ERROR!] " ANSI_RESET "One file exceeded our filename limit!\n");
-	    			_exit(1);
+					perror(ANSI_RED "[ERROR!] " ANSI_RESET "One file exceeded our filename limit!\n");
+	    			exit(EXIT_FAILURE);
 				}
 
 				current = malloc(length);

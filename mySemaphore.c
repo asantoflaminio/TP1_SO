@@ -1,5 +1,5 @@
-#include "include/mysemaphore.h"
-/*
+#include "include/mySemaphore.h"
+
 void modifySemaphore(int x, int id_sem){
 	struct sembuf operation;
 	operation.sem_num = 0;
@@ -21,4 +21,8 @@ void changePermissions(int id_sem){
 
 	arg.val = 0;
 	semctl(id_sem, 0, SETVAL, &arg);
-}*/
+}
+
+void removeSemaphore(int id_sem){
+	semctl(id_sem, 0, IPC_RMID); 
+}

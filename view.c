@@ -1,12 +1,20 @@
 #include "include/view.h"
 
-#include "include/mysemaphore.h"
-
 int 
 main(int argc, char* argv[]){
 	
+	if(argc != 2){
+		printf("The arguments were wrong. Correct format: hash <directory>\n");
+		return -1;
+	} 
+
 	printf("Starting view process...\n");
-	
+	start(atoi(argv[1]));
+	printf("Finishing view process...\n");
+	return 0;
+}
+
+void start(int pid){
 	key_t key;
 	int id_shmem;
 	
@@ -15,38 +23,14 @@ main(int argc, char* argv[]){
 	char * shm;
 	int done = 0;
 	
-	if(argc != 2){
-		printf("The arguments were wrong. Correct format: hash <directory>\n");
-		return -1;
-	}
+	key = generateKey(pid);
+	
+	printf("Taking shared memory segment...\n");
+	shm = getSharedMemorySegmentForView(&id_shmem, key);
 
-
-	key = ftok("/home", atoi(argv[1]));
-	if(key == -1){
-		perror("[ERROR!] Couldn't generate the key!\n");
-		exit(1);
-	}
+	printf("Creating semaphore...\n");
+	createSemaphore(&id_sem, key);
 	
-	id_shmem = shmget(key, MYSIZE, 0777);
-	if(id_shmem < 0){
-		perror("[ERROR!] Couldn't get the identifier of the segment!\n");
-		exit(1);
-	}
-	
-	shm = (char*) shmat(id_shmem, 0, 0);
-	if(shm == (char*) -1){
-		perror("[ERROR!] Couldn't take the shared segment!\n");
-		exit(1);
-	}
-	
-	id_sem = semget (key, 1, 0600 | IPC_CREAT);
-	if (id_sem == -1)
-	{
-		perror("[ERROR!] Couldn't create semaphore!\n");
-		exit (1);
-	}
-	
-
 	char * s = shm;
 
 	while(!done){
@@ -64,17 +48,21 @@ main(int argc, char* argv[]){
 		}
 		
 		modifySemaphore(1,id_sem);
-		
 	}
 
-
-	shmdt(shm);
-	shmctl(id_shmem,  IPC_RMID, 0);
-	
-    	printf("Finishing view process...\n");
-	
-	return 0;
-
+	printf("Detaching and removing a shared memory segment...\n");
+    detachAndRemoveSharedMem(id_shmem, shm);
 }
 
+
+key_t generateKey(int num){
+	key_t key = ftok("/home", num);
+	
+	if (key == -1) {
+		perror(ANSI_RED"[ERROR!] " ANSI_RESET "Couldn't generate the key!");
+		exit(1);
+	}
+
+	return key;
+}
 

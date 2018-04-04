@@ -1,64 +1,72 @@
 #ifndef APPLICATION_H
 #define APPLICATION_H
 
+#include "mySemaphore.h"
+#include "mySharedMemory.h"
 #include "queue.h"
 #include "slave.h"
+#include "order.h"
+#include "queue.h"
+#include "styles.h"
+#include "types.h"
 
-#define MYSIZE 30000
+/* Quantity of orders that are sent together. */
 #define ORDERS_NUM 2
+/* The quantity of slaves that are working in our program. */
 #define SLAVES_NUM 3
+/* To list directories. */
 #define SEPARATOR "/"
-#define VERTICAL_SLASH '|'
+/* Character used to separate messages. */
+#define VERTICAL_SLASH "|"
+/* To execute slave. */
 #define SLAVE_EXEC "./slave"
-#define VIEW_EXEC "./view"
-#define MAX_LENGTH 50
-#define DIRNAMETEST "test"
-/* Character send by application to end slave process */
+/* Character send by application to end slave process. */
 #define STOP_SLAVES "+"
-#define ANSI_RED     "\x1b[31m"
-#define ANSI_GREEN    "\x1b[32m"
-#define ANSI_BLUE    "\x1b[34m"
-#define ANSI_RESET   "\x1b[0m"
-
-
-
-/* Searches all available files from dirname and enqueues 
-them into queue. Returns how many files where enqueued. */
-int loadFiles(const char *dirname, queue_o queue, int files);
+#define MAX_LENGTH 80
+#define DIRNAMETEST "test"
 
 /* Start the execution of the program, once the entry 
 through the command line was syntactically correct. */
-void start(const char *dirname);
+void start(const char *);
 
+/* Generates an IPC key. */
+key_t generateKey(int);
+
+/* Searches all available files from dirname and enqueues 
+them into queue. Returns how many files where enqueued. */
+int loadFiles(const char *, queue_o , int);
+
+/* Creates slaves and saved them in a vector of pointers to the struct slaves_o. 
+Generates the connection betweeen application and slaves if it is necessary. */
 slaves_o * createSlaves();
 
-queue_o assignWork(slaves_o * slaves, queue_o orderQueue, int queueSize, int * assignedOrder);
+/* Cycles assigning work to slaves and reading from their pipes until there are no more files to process */
+char ** startProcessing(int queueSize, queue_o orderQueue, slaves_o * slaves, char ** hashes, char * shm, int id_sem);
 
-void stopSlaves(slaves_o * slaves);
+/* Assigns orders to slaves only if they are currently not working. 
+If an order was assigned, dequeues it. */
+queue_o assignWork(slaves_o *, queue_o, int, int *);
 
+/* Stops slave execution by writing them a special character. */
+void stopSlaves(slaves_o *);
+
+/* Displays a menu. */
 void menu();
 
-void manual();
-
+/* Gets the option of the menu selected by the user. */
 char getOption();
 
+/* Displays a manual of how to start view process. */
+void manual();
+
+/* Cleans buffer. Useful if the input of the user was wrong. */
 void cleanBuffer();
 
-void detachAndRemoveSharedMem(int id_shmem, char * shm); // --> La idea es sacar esto de aca y hacer un .c propio para shared mem
+/* Opens a file and writes there the results saved in hashes. Then closes it. */
+void writeResultIntoFile(int, char **);
 
-void removeSemaphore(int id_sem); // --> La idea es sacar esto de aca y hacer un .c propio para semaforos
 
-key_t generateKey(int num);
-
-char * createSharedMemorySegment(int * id_shmem, key_t key); // --> La idea es sacar esto de aca y hacer un .c propio para shared mem
-
-void createSemaphore(int * id_sem, key_t key); // --> La idea es sacar esto de aca y hacer un .c propio para semaforos
-
-void writeResultIntoFile(int queueSize, char ** hashes);
-
-void changePermissions(int id_sem); // --> La idea es sacar esto de aca y hacer un .c propio para semaforos
-
-/*Test cases functions*/
+/* ---------------- Test cases functions ---------------- */
 
 void startTest();
 
@@ -66,14 +74,14 @@ void testBidirectionalComunication();
 
 void testRedistributionOfOrders();
 
-void givenString(char * message);
+void givenString(char *);
 
-void whenSlaveIsExecuted(int * pipeFatherToChild, int * pipeChildToFather);
+void whenSlaveIsExecuted(int *, int *);
 
-void whenStringIsSentToSlave(char * message, int * pipeFatherToChild);
+void whenStringIsSentToSlave(char *, int *);
 
-void whenStringIsReturned(char * messageReturned, int * pipeChildToFather);
+void whenStringIsReturned(char *, int *);
 
-void thenStringIsReturned(const char * message, const char * messageReturned);
+void thenStringIsReturned(const char *, const char *);
 
 #endif

@@ -23,18 +23,15 @@ struct orderQueue {
 queue_o newQueue();
 
 /* Adds a new element at the end of the queue. */
-void enQueue(queue_o q, order_o o);
+void enQueue(queue_o, order_o);
 
 /* Removes and returns the first element of the queue. */
-node_o * deQueue(queue_o q);
+node_o * deQueue(queue_o);
 
 /* Returns if the queue is empty. */
-boolean isEmpty(queue_o q);
+boolean isEmpty(queue_o);
 
 /* Returns the size of the queue. */
-unsigned int size(queue_o q);
-
-/*Frees de queue*/
-void freeQueue(queue_o q);
+unsigned int size(queue_o);
 
 #endif

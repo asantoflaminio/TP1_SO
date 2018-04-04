@@ -1,15 +1,13 @@
 #ifndef MYSEMAPHORE_H
 #define MYSEMAPHORE_H
 
-#include <sys/shm.h>
-#include <unistd.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <sys/wait.h>
-#include <errno.h>
 #include <sys/types.h>
 #include <sys/ipc.h>
 #include <sys/sem.h>
+#include <stdlib.h>
+
+#include "styles.h"
+
 
 #if defined(__GNU_LIBRARY__) && !defined(_SEM_SEMUN_UNDEFINED)
 // If union is alredy defined in sys/sem.h
@@ -23,15 +21,17 @@ union semun{
 };
 #endif
 
-//void modifySemaphore(int x, int id_sem);
-//void createSemaphore(int * id_sem, key_t key);
-void modifySemaphore(int x, int id_sem){
-	struct sembuf operation;
-	operation.sem_num = 0;
-	operation.sem_op = x;
-	operation.sem_flg = 0;
-	semop(id_sem, &operation, 1); 
-}
+/* Modifies semaphore value according to x */
+void modifySemaphore(int, int);
+
+/* Creates a new semaphore or accesses an existing one */
+void createSemaphore(int *, key_t);
+
+/* Sets the value of the semaphore to the val member of the union. */
+void changePermissions(int);
+
+/* Removes the semaphore identifier from the system and frees the storage */
+void removeSemaphore(int);
 
 #endif
 
