@@ -193,14 +193,14 @@ void thenHashesWereCalculated(int filesToProcess, queue_o realQueue){
 	printf("The real hashes of files are: \n");
 	for(i = 0; i < filesToProcess; i++){
 		node_o * temp = deQueue(realQueue);
-		free(temp->order.filename);
-		free(temp);
 		strcpy(filename,temp->order.filename);
 		switch(fork()){
 			case -1: printf("Failure: Unable tu fork\n");break;
 			case 0: execlp(MD5, MD5 ,filename, NULL);break;
 			default: wait(NULL);break;
 		}
+		free(temp->order.filename);
+		free(temp);
 	}
 	printf("\nIf all hashes are equal, then the test is succesful\n\n");
 }
