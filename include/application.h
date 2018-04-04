@@ -68,20 +68,28 @@ void writeResultIntoFile(int, char **);
 
 /* ---------------- Test cases functions ---------------- */
 
+/* Initializes test. */
 void startTest();
 
+/* Checks communication between father and child */
 void testBidirectionalComunication();
 
+/* Searches recursively all files, creates slaves and executes md5sum to check if hashes are equal */
 void testRedistributionOfOrders();
 
+/* Writes a message to the slave */
 void givenString(char *);
 
+/* Generates slaves */
 void whenSlaveIsExecuted(int *, int *);
 
+/* Sends string to slave*/
 void whenStringIsSentToSlave(char *, int *);
 
+/* Slave returns string */
 void whenStringIsReturned(char *, int *);
 
+/* Checks if two strings received are equal */
 void thenStringIsReturned(const char *, const char *);
 
 #endif
