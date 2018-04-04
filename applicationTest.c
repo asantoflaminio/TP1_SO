@@ -32,8 +32,8 @@ void testRedistributionOfOrders(){
 	slaves = createSlaves();
 	
 	free(slaves);
-	int i = 0;
-	for(i; i < files; i++){
+	int i;
+	for(i = 0; i < files; i++){
 		node_o * temp = deQueue(orderQueue);
 				
 		free(temp->order.filename);
