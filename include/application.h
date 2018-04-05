@@ -12,8 +12,6 @@
 
 /* Quantity of orders that are sent together. */
 #define ORDERS_NUM 2
-/* The quantity of slaves that are working in our program. */
-#define SLAVES_NUM 3
 /* To list directories. */
 #define SEPARATOR "/"
 /* Character used to separate messages. */
