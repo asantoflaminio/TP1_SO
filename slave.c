@@ -7,6 +7,7 @@ main(int args, char * argv[]){
   	char * file, * curr = msg;
   	int running = 1;
   	queue_o orderQueue = newQueue();
+  	order_o order;
 
   	if(args != 1){
   		free(orderQueue);
@@ -23,7 +24,6 @@ main(int args, char * argv[]){
 					*curr = NUL;
 					file = malloc(strlen(msg) + 1);
 					strcpy(file, msg);
-					order_o order;
 					order.filename = file;
 					order.processed = false;
 					enQueue(orderQueue, order);
@@ -130,7 +130,9 @@ void slaveTest(){
 void testCalculateHashOfFile(){
 	char file[MAX_LENGHT_FILES]; 
 	char resultHash[MAX_LENGHT_HASH];
+	
 	memset(resultHash, 0, sizeof(resultHash));
+	
 	givenFileToProcess(file);
 	whenProcessingFile(file, resultHash);
 	thenHashWasCalculated(resultHash, file);
@@ -139,10 +141,11 @@ void testCalculateHashOfFile(){
 void testCalculateHashesOfDirectory(){
 	char directory[MAX_LENGHT_FILES];
 	char resultHashes[MAX_LENGHT_HASHES];
-	memset(resultHashes, 0, sizeof(resultHashes));
 	int filesToProcess = 0;
 	queue_o queue = newQueue();
 	queue_o realQueue = newQueue();
+
+	memset(resultHashes, 0, sizeof(resultHashes));
 
 	givenDirectoryToProcess(directory,queue,realQueue,&filesToProcess);
 	whenProcessingFiles(queue, resultHashes);
@@ -196,6 +199,7 @@ void thenHashWasCalculated(const char * resultHash, char * filename){
 void thenHashesWereCalculated(int filesToProcess, queue_o realQueue){
 	int i;
 	char filename[MAX_FILENAME];
+	
 	printf("The real hashes of files are: \n");
 	
 	for(i = 0; i < filesToProcess; i++){
@@ -223,8 +227,11 @@ void thenHashesWereCalculated(int filesToProcess, queue_o realQueue){
 
 void communicationTestFunction(){
 	char message[MAX_FILENAME];
+	char * current;
+	
 	memset(message, 0, sizeof(message));
-	char * current = message;
+	
+	current = message;
 	
 	while((*current = getchar()) && (*current != NUL)){
 		current++;
@@ -239,6 +246,7 @@ int loadFiles(const char *dirname, queue_o queue, int files){
 	struct dirent *dp;
 	char * current;
 	int length;
+	
 	dir = opendir(dirname);
 	
 	if(dir != NULL){

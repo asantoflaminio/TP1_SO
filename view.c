@@ -15,12 +15,14 @@ main(int argc, char* argv[]){
 }
 
 void start(int pid){
+	char * s;	
 	key_t key;
+	
 	int id_shmem;
+	char * shm;
 	
 	int id_sem;
 
-	char * shm;
 	int done = 0;
 	
 	key = generateKey(pid);
@@ -31,7 +33,7 @@ void start(int pid){
 	printf("Creating semaphore...\n");
 	createSemaphore(&id_sem, key);
 	
-	char * s = shm;
+	s = shm;
 
 	while(!done){
 		modifySemaphore(-1,id_sem);

@@ -6,10 +6,10 @@
 
 typedef struct orderNode node_o;
 
-typedef struct orderNode {
+struct orderNode {
 	order_o order;
 	node_o * next;
-} node_o;
+};
 
 typedef struct orderQueue * queue_o;
 

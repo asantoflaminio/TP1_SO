@@ -11,9 +11,9 @@
 
 
 #if defined(__GNU_LIBRARY__) && !defined(_SEM_SEMUN_UNDEFINED)
-// If union is alredy defined in sys/sem.h
+/* If union is alredy defined in sys/sem.h */
 #else
-// else, we have to define it
+/* else, we have to define it */
 union semun{
     int val;  /* Value for SETVAL */
     struct semid_ds *buf;  /* Buffer for IPC_STAT, IPC_SET */

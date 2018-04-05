@@ -26,13 +26,13 @@ void testRedistributionOfOrders(){
 	queue_o orderQueue;
 	slaves_o * slaves;
 	int files = 0;
-
+	int i;
+	
 	orderQueue = newQueue();
 	files = loadFiles(DIRNAMETEST, orderQueue, files);
 	slaves = createSlaves();
 	
 	free(slaves);
-	int i;
 	for(i = 0; i < files; i++){
 		node_o * temp = deQueue(orderQueue);
 				

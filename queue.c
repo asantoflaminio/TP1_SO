@@ -27,11 +27,13 @@ void enQueue(queue_o q, order_o o){
 }
 
 node_o * deQueue(queue_o q){
+    node_o * temp;
+
     if (q->first == NULL){
         return NULL;
     }
 
-    node_o * temp = q->first;
+    temp = q->first;
     q->first = q->first->next;
 
     q->size--;

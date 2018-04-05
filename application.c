@@ -45,6 +45,7 @@ void start(const char *dirname){
 	int queueSize;
 	queue_o orderQueue;
 	slaves_o * slaves;
+	char **hashes;
 	
 	key_t key;
 	
@@ -90,7 +91,7 @@ void start(const char *dirname){
 	slaves = createSlaves();
 	sleep(1.5);
 
-	char **hashes = (char **)malloc(files * sizeof (char *));
+	hashes = (char **)malloc(files * sizeof (char *));
 	
 	hashes = startProcessing(queueSize, orderQueue, slaves, hashes, shm, id_sem);
 	
@@ -112,16 +113,7 @@ void start(const char *dirname){
    	printf("Removing semaphore...\n");
     removeSemaphore(id_sem);
     
-    int j;
-    for(j = 0; j < files; j++){
-		free(hashes[j]);
-	}
-
-	free(hashes);
-	
-	free(slaves);
-	
-	free(orderQueue);
+   	freeMemory(hashes, slaves, orderQueue, files);
 }
 
 key_t generateKey(int num){
@@ -180,7 +172,7 @@ int loadFiles(const char *dirname, queue_o queue, int files){
 slaves_o * createSlaves(){
 	int i;
 	slaves_o * slaves;
-
+	int flags;
 	slaves = (slaves_o *)calloc(SLAVES_NUM, sizeof(slaves_o));
 
 	if(slaves == NULL) {
@@ -204,7 +196,7 @@ slaves_o * createSlaves(){
 	    }
 
 		pid = fork();
-		int flags = fcntl(slaves[i].pipeChildToFather[0], F_GETFL, 0);
+		flags = fcntl(slaves[i].pipeChildToFather[0], F_GETFL, 0);
 		
 		switch(pid){
 			case -1:
@@ -279,6 +271,7 @@ char ** startProcessing(int queueSize, queue_o orderQueue, slaves_o * slaves, ch
 
 queue_o assignWork(slaves_o * slaves, queue_o orderQueue, int queueSize, int * assignedOrder){
 	int i, j;
+	node_o * temp;
 
 	for(i = 0; i < SLAVES_NUM && queueSize != *assignedOrder; i++){	
 		if(slaves[i].isWorking == false){
@@ -286,7 +279,7 @@ queue_o assignWork(slaves_o * slaves, queue_o orderQueue, int queueSize, int * a
 				if(orderQueue->first->order.processed == false){
 					write(slaves[i].pipeFatherToChild[1], orderQueue->first->order.filename, strlen(orderQueue->first->order.filename));
 					write(slaves[i].pipeFatherToChild[1], "|", 1);
-					node_o * temp = deQueue(orderQueue);
+					temp = deQueue(orderQueue);
 					printf("Sending %s to slave number %d\n", temp->order.filename, i);
 					free(temp->order.filename);
 					free(temp);
@@ -313,12 +306,14 @@ void stopSlaves(slaves_o * slaves){
 }
 
 void menu(){
+	char input;
+	
 	printf(ANSI_BLUE"--- MENU ---\n"ANSI_RESET);
 	printf("Please, choose one option: \n");
    	printf("1 - Show instructions to start view process\n");
    	printf("2 - Continue to application process normally. Remember: <pid>=%d\n", getpid());
    	
-   	char input = getOption();
+   	input = getOption();
 
    	if(input == '1')
    		manual();
@@ -367,4 +362,16 @@ void writeResultIntoFile(int queueSize, char ** hashes){
 	}
 
 	fclose(file);
+}
+
+void freeMemory(char ** hashes, slaves_o * slaves, queue_o orderQueue, int files){
+	int j;
+
+	for(j = 0; j < files; j++){
+		free(hashes[j]);
+	}
+
+	free(hashes);
+	free(slaves);
+	free(orderQueue);
 }
