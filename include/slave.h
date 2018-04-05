@@ -23,7 +23,7 @@
 #define MSG_LENGTH 140
 /* This character is a control character with the value zero. */
 #define NUL '\0'
-/* Number of orders the application will send per slave. */
+/* Quantity of orders that are sent together. */
 #define ORDERS_NUM 2
 /* Represents the separation between two different orders. */
 #define VERTICAL_SLASH_CHARACTER '|'

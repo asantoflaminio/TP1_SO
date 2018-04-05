@@ -27,10 +27,12 @@ void testRedistributionOfOrders(){
 	slaves_o * slaves;
 	int files = 0;
 	int i;
-	
+	int slavesQuantity;
+
 	orderQueue = newQueue();
 	files = loadFiles(DIRNAMETEST, orderQueue, files);
-	slaves = createSlaves();
+	slavesQuantity = files/(2*ORDERS_NUM);
+	slaves = createSlaves(slavesQuantity);
 	
 	free(slaves);
 	for(i = 0; i < files; i++){

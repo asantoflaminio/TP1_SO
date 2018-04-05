@@ -43,10 +43,11 @@ main(int argc, char* argv[]){
 void start(const char *dirname){
 	int files = 0;
 	int queueSize;
+	int slavesQuantity;
 	queue_o orderQueue;
 	slaves_o * slaves;
 	char **hashes;
-	
+
 	key_t key;
 	
 	int id_shmem;
@@ -80,6 +81,8 @@ void start(const char *dirname){
 	printf("%d files were fetched!\n", files);
 	sleep(1.5);
 
+	slavesQuantity = files/(2*ORDERS_NUM);
+
 	if(files == 0){
 		printf("No files to process\n");
 		exit(EXIT_SUCCESS);
@@ -87,21 +90,20 @@ void start(const char *dirname){
 
 	queueSize = orderQueue->size;
 
-	printf("Creating %d slaves...\n", SLAVES_NUM);
-	slaves = createSlaves();
+	printf("Creating %d slaves...\n", slavesQuantity);
+	slaves = createSlaves(slavesQuantity);
 	sleep(1.5);
 
 	hashes = (char **)malloc(files * sizeof (char *));
 	
-	hashes = startProcessing(queueSize, orderQueue, slaves, hashes, shm, id_sem);
+	hashes = startProcessing(queueSize, orderQueue, slaves, hashes, shm, id_sem, slavesQuantity);
 	
 	modifySemaphore(1,id_sem);
 	strcat(shm,"?"); 
 	modifySemaphore(-1,id_sem);
 
-
 	printf("Stopping slaves from working...\n");
-	stopSlaves(slaves);
+	stopSlaves(slaves, slavesQuantity);
 	sleep(1.5);
 
 	printf("Writing results into my_hashes.txt...\n");
@@ -169,11 +171,11 @@ int loadFiles(const char *dirname, queue_o queue, int files){
 }
 
 
-slaves_o * createSlaves(){
+slaves_o * createSlaves(int slavesQuantity){
 	int i;
 	slaves_o * slaves;
 	int flags;
-	slaves = (slaves_o *)calloc(SLAVES_NUM, sizeof(slaves_o));
+	slaves = (slaves_o *)calloc(slavesQuantity, sizeof(slaves_o));
 
 	if(slaves == NULL) {
 	    perror(ANSI_RED "[ERROR!] " ANSI_RESET "Couldn't allocate space for slaves!\n");
@@ -182,7 +184,7 @@ slaves_o * createSlaves(){
   	}
 
 
-	for(i = 0; i < SLAVES_NUM; i++){
+	for(i = 0; i < slavesQuantity; i++){
 		pid_t pid;
 
 		slaves[i].isWorking = false;
@@ -225,7 +227,7 @@ slaves_o * createSlaves(){
 	return slaves;
 }
 
-char ** startProcessing(int queueSize, queue_o orderQueue, slaves_o * slaves, char ** hashes, char * shm, int id_sem){
+char ** startProcessing(int queueSize, queue_o orderQueue, slaves_o * slaves, char ** hashes, char * shm, int id_sem, int slavesQuantity){
 	int assignedOrder = 0;
 	int finishOrder = 0;
 	int pointer = 0;
@@ -236,11 +238,10 @@ char ** startProcessing(int queueSize, queue_o orderQueue, slaves_o * slaves, ch
 	
 
 	while(finishOrder != queueSize){ 
-
 		if(assignedOrder != queueSize)
-			orderQueue = assignWork(slaves, orderQueue, queueSize, &assignedOrder); 	
+			orderQueue = assignWork(slaves, orderQueue, queueSize, &assignedOrder, slavesQuantity); 	
 
-		for(i = 0; i < SLAVES_NUM; i++){
+		for(i = 0; i < slavesQuantity; i++){
 			if(slaves[i].isWorking){
 				while(read(slaves[i].pipeChildToFather[0], curr, 1) == 1){
 					if(*curr == '\n'){
@@ -269,11 +270,11 @@ char ** startProcessing(int queueSize, queue_o orderQueue, slaves_o * slaves, ch
 	return hashes;
 }
 
-queue_o assignWork(slaves_o * slaves, queue_o orderQueue, int queueSize, int * assignedOrder){
+queue_o assignWork(slaves_o * slaves, queue_o orderQueue, int queueSize, int * assignedOrder, int slavesQuantity){
 	int i, j;
 	node_o * temp;
 
-	for(i = 0; i < SLAVES_NUM && queueSize != *assignedOrder; i++){	
+	for(i = 0; i < slavesQuantity && queueSize != *assignedOrder; i++){	
 		if(slaves[i].isWorking == false){
 			for(j = 0; j < ORDERS_NUM && (*assignedOrder != queueSize) ; j++){
 				if(orderQueue->first->order.processed == false){
@@ -298,9 +299,9 @@ queue_o assignWork(slaves_o * slaves, queue_o orderQueue, int queueSize, int * a
 }
 
 
-void stopSlaves(slaves_o * slaves){
+void stopSlaves(slaves_o * slaves, int slavesQuantity){
 	int i;
-	for(i = 0; i < SLAVES_NUM; i++){
+	for(i = 0; i < slavesQuantity; i++){
 		write(slaves[i].pipeFatherToChild[1],STOP_SLAVES,1);
 	}
 }

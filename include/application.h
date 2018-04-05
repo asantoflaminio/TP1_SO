@@ -38,17 +38,17 @@ int loadFiles(const char *, queue_o , int);
 
 /* Creates slaves and saved them in a vector of pointers to the struct slaves_o. 
 Generates the connection betweeen application and slaves if it is necessary. */
-slaves_o * createSlaves();
+slaves_o * createSlaves(int);
 
 /* Cycles assigning work to slaves and reading from their pipes until there are no more files to process */
-char ** startProcessing(int queueSize, queue_o orderQueue, slaves_o * slaves, char ** hashes, char * shm, int id_sem);
+char ** startProcessing(int queueSize, queue_o orderQueue, slaves_o * slaves, char ** hashes, char * shm, int id_sem, int);
 
 /* Assigns orders to slaves only if they are currently not working. 
 If an order was assigned, dequeues it. */
-queue_o assignWork(slaves_o *, queue_o, int, int *);
+queue_o assignWork(slaves_o *, queue_o, int, int *, int);
 
 /* Stops slave execution by writing them a special character. */
-void stopSlaves(slaves_o *);
+void stopSlaves(slaves_o *, int);
 
 /* Displays a menu. */
 void menu();
@@ -71,20 +71,28 @@ void freeMemory(char **, slaves_o *, queue_o, int);
 
 /* ---------------- Test cases functions ---------------- */
 
+/* Initializes test. */
 void startTest();
 
+/* Checks communication between father and child */
 void testBidirectionalComunication();
 
+/* Searches recursively all files, creates slaves and executes md5sum to check if hashes are equal */
 void testRedistributionOfOrders();
 
+/* Writes a message to the slave */
 void givenString(char *);
 
+/* Generates slaves */
 void whenSlaveIsExecuted(int *, int *);
 
+/* Sends string to slave*/
 void whenStringIsSentToSlave(char *, int *);
 
+/* Slave returns string */
 void whenStringIsReturned(char *, int *);
 
+/* Checks if two strings received are equal */
 void thenStringIsReturned(const char *, const char *);
 
 #endif
