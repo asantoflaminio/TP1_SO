@@ -18,6 +18,7 @@ main(int args, char * argv[]){
   		return 0;
   	}
   
+  	memset(resultHashes, 0, sizeof(ORDERS_NUM * MSG_LENGTH));
   	while(running){
 		while((*curr = getchar()) && (*curr != NUL) && (*curr != STOP_SLAVES_CHARACTER)){
 				if(*curr == VERTICAL_SLASH_CHARACTER){
@@ -47,12 +48,12 @@ main(int args, char * argv[]){
 void processOrderQueue(queue_o orderQueue, char * resultHashes){
 	int sizeQueue = orderQueue->size;
 	int i;
-		
+
 	for(i = 0; i < sizeQueue; i++){
 			node_o * temp = deQueue(orderQueue);
 			processOneOrder(temp->order.filename,resultHashes);
-			free(temp->order.filename);
-			free(temp);
+			//free(temp->order.filename); ESTO HAY Q MOVERLO
+			//free(temp);
   	}
 
   	sendResults(resultHashes);
@@ -61,24 +62,20 @@ void processOrderQueue(queue_o orderQueue, char * resultHashes){
 void processOneOrder(char * filename, char * resultHashes){
   	char md5[MD5_LENGTH], temporal[MSG_LENGTH];
 	int pipefd[2], pid;
-
   	pipe(pipefd);
-  	
   	pid = fork();
-	
 	switch(pid){
 		case -1: 
 			perror("[ERROR!] Couldn't fork correctly!\n");
 			exit(EXIT_FAILURE);
 			break;
-		case 0:  
+		case 0:
 			calculateMD5Hashes(pipefd, filename); 
 			break;
 		default:  
 			readResults(pipefd, md5); 
 			break;
 	}
-
 	sprintf(temporal,"<%s>: <%s>\n",filename, md5);
 	strcat(resultHashes,temporal);
 }
