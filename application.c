@@ -255,7 +255,6 @@ char ** startProcessing(int queueSize, queue_o orderQueue, slaves_o * slaves, ch
 						strcat(shm, buff);
 						strcat(shm, VERTICAL_SLASH); 
 						modifySemaphore(1,id_sem);
-						printf("El hash recibido fue: %s\n", hashes[pointer]);
 						curr = buff;
 						pointer++;
 					}
