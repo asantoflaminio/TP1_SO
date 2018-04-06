@@ -12,8 +12,6 @@
 #include "mySemaphore.h"
 #include "mySharedMemory.h"
 
-#define MYSIZE 30000
-
 /* Start the execution of the program, once the entry 
 through the command line was correct. Then writes in stdout
 what is in shared memory. */

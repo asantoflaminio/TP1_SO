@@ -248,7 +248,7 @@ char ** startProcessing(int queueSize, queue_o orderQueue, slaves_o * slaves, ch
 						*curr = '\0';
 						slaves[i].isWorking = false;
 						finishOrder++;
-						hashes[pointer] = malloc(MAX_HASH_LENGTH * sizeof(char)); // ESTO TIRABA corrupt memory
+						hashes[pointer] = malloc(MAX_HASH_LENGTH * sizeof(char));
 						memset(hashes[pointer], 0, sizeof(MAX_HASH_LENGTH));
 						strcpy(hashes[pointer], buff); 
 						modifySemaphore(-1,id_sem);
@@ -282,7 +282,7 @@ queue_o assignWork(slaves_o * slaves, queue_o orderQueue, int queueSize, int * a
 					write(slaves[i].pipeFatherToChild[1], orderQueue->first->order.filename, strlen(orderQueue->first->order.filename));
 					write(slaves[i].pipeFatherToChild[1], "|", 1);
 					temp = deQueue(orderQueue);
-					//printf("Sending %s to slave number %d\n", temp->order.filename, i);
+					printf("Sending %s to slave number %d\n", temp->order.filename, i);
 					free(temp->order.filename);
 					free(temp);
 					slaves[i].isWorking = true;

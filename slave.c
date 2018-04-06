@@ -52,7 +52,7 @@ void processOrderQueue(queue_o orderQueue, char * resultHashes){
 	for(i = 0; i < sizeQueue; i++){
 			node_o * temp = deQueue(orderQueue);
 			processOneOrder(temp->order.filename,resultHashes);
-			//free(temp->order.filename); ESTO HAY Q MOVERLO
+			//free(temp->order.filename); 
 			//free(temp);
   	}
 
@@ -268,7 +268,6 @@ int loadFiles(const char *dirname, queue_o queue, int files){
 					order.processed = false;
 					enQueue(queue, order);
 					files++;
-
 				}
 			}
 		}

@@ -8,7 +8,7 @@
 #include <stdio.h>
 #include "styles.h"
 
-#define MYSIZE 30000
+#define MYSIZE 50000
 
 /* Creates a new segment and gets the identifier of the shared 
 memory associated with the value of the argument key. Then 
