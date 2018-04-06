@@ -22,6 +22,7 @@
 #define STOP_SLAVES "+"
 #define MAX_LENGTH 80
 #define DIRNAMETEST "test"
+#define MAX_HASH_LENGTH 500
 
 /* Start the execution of the program, once the entry 
 through the command line was syntactically correct. */
