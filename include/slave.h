@@ -14,13 +14,13 @@
 /* Character send by application to end slave process. */
 #define STOP_SLAVES_CHARACTER '+'
 /* Filename lenght limit for our program. */
-#define MAX_FILENAME 100
+#define MAX_FILENAME 300
 /* Command to calculate hashes */
 #define MD5 "md5sum"
 /* 32 characters of MD5 + end of string. */
 #define MD5_LENGTH 33
 /* Slave's answer length: 100 of MAX_FILENAME + 33 of MD5_LENGTH + a bit of aux space. */
-#define MSG_LENGTH 140
+#define MSG_LENGTH 200
 /* This character is a control character with the value zero. */
 #define NUL '\0'
 /* Quantity of orders that are sent together. */
@@ -34,7 +34,7 @@
 /* Represents the max number of characters of all the hashes of files processed. */
 #define MAX_LENGHT_HASHES 2024
 /* Represents the max number of characters per hash of a single file. */
-#define MAX_LENGHT_HASH 100
+#define MAX_LENGHT_HASH 200
 /* Represents the option selected to quit menu. */
 #define EXIT 3
 
