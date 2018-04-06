@@ -232,11 +232,11 @@ char ** startProcessing(int queueSize, queue_o orderQueue, slaves_o * slaves, ch
 	int finishOrder = 0;
 	int pointer = 0;
 
-	char * buff = malloc(100 * sizeof(char));
+	char * buff = malloc(MAX_HASH_LENGTH * sizeof(char));
 	char * curr = buff;
 	int i;
 	
-
+	memset(buff, 0, sizeof(MAX_HASH_LENGTH));
 	while(finishOrder != queueSize){ 
 		if(assignedOrder != queueSize)
 			orderQueue = assignWork(slaves, orderQueue, queueSize, &assignedOrder, slavesQuantity); 	
@@ -248,12 +248,14 @@ char ** startProcessing(int queueSize, queue_o orderQueue, slaves_o * slaves, ch
 						*curr = '\0';
 						slaves[i].isWorking = false;
 						finishOrder++;
-						hashes[pointer] = malloc(100 * sizeof(char));
+						hashes[pointer] = malloc(MAX_HASH_LENGTH * sizeof(char)); // ESTO TIRABA corrupt memory
+						memset(hashes[pointer], 0, sizeof(MAX_HASH_LENGTH));
 						strcpy(hashes[pointer], buff); 
 						modifySemaphore(-1,id_sem);
 						strcat(shm, buff);
 						strcat(shm, VERTICAL_SLASH); 
 						modifySemaphore(1,id_sem);
+						printf("El hash recibido fue: %s\n", hashes[pointer]);
 						curr = buff;
 						pointer++;
 					}
@@ -281,7 +283,7 @@ queue_o assignWork(slaves_o * slaves, queue_o orderQueue, int queueSize, int * a
 					write(slaves[i].pipeFatherToChild[1], orderQueue->first->order.filename, strlen(orderQueue->first->order.filename));
 					write(slaves[i].pipeFatherToChild[1], "|", 1);
 					temp = deQueue(orderQueue);
-					printf("Sending %s to slave number %d\n", temp->order.filename, i);
+					//printf("Sending %s to slave number %d\n", temp->order.filename, i);
 					free(temp->order.filename);
 					free(temp);
 					slaves[i].isWorking = true;
